@@ -1,11 +1,13 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
 import { WeatherEntity } from '../types/home-assistant.types';
-import homeAssistantService from '../services/home-assistant-service';
+import weatherService from '../services/weather-service';
+import timeService from '../services/time-service';
 
 @customElement('time-weather')
 export class TimeWeather extends LitElement {
   @state() private weatherData: WeatherEntity | null = null;
+  @state() private currentTime: Date = new Date();
   @property({ type: Boolean }) showWeather: boolean = true;
   @property({ type: Boolean }) showTime: boolean = true;
 
@@ -77,48 +79,46 @@ export class TimeWeather extends LitElement {
   connectedCallback() {
     super.connectedCallback();
 
-    // Update the clock every minute
-    this.updateClock();
-    setInterval(() => this.updateClock(), 60000);
+    // Initialize time service
+    if (this.showTime) {
+      timeService.initialize();
+      timeService.subscribeTime((time) => {
+        this.currentTime = time;
+        this.requestUpdate();
+      });
+    }
 
-    // Subscribe to weather updates if showing weather
+    // Initialize weather service
     if (this.showWeather) {
       this.initializeWeather();
     }
   }
 
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    // Clean up services
+    timeService.dispose();
+    weatherService.dispose();
+  }
+
   private async initializeWeather() {
     try {
-      // Initialize the Home Assistant service
-      const initialized = await homeAssistantService.initialize();
+      // Initialize the weather service
+      const initialized = await weatherService.initialize();
 
       if (initialized) {
         // Subscribe to weather updates
-        homeAssistantService.subscribeWeather((weather) => {
+        weatherService.subscribeWeather((weather) => {
           this.weatherData = weather;
           this.requestUpdate();
         });
       } else {
-        console.error('Failed to initialize Home Assistant service for weather');
+        console.error('Failed to initialize weather service');
       }
     } catch (error) {
       console.error('Error initializing weather service:', error);
     }
-  }
-
-  private updateClock() {
-    // Force a re-render to update the clock
-    this.requestUpdate();
-  }
-
-  private formatDate(date: Date): string {
-    return new Intl.DateTimeFormat('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
-    }).format(date);
   }
 
   // Render weather widget
@@ -138,12 +138,10 @@ export class TimeWeather extends LitElement {
   }
 
   render() {
-    const currentTime = new Date();
-
     return html`
       ${this.showTime ? html`
         <div class="current-time">
-          ${this.formatDate(currentTime)}
+          ${timeService.formatDate(this.currentTime)}
         </div>
       ` : ''}
 

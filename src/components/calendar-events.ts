@@ -1,11 +1,11 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { CalendarEntity } from '../types/home-assistant.types';
-import homeAssistantService from '../services/home-assistant-service';
+import calendarEventsService from '../services/calendar-events-service';
 
 @customElement('calendar-events')
 export class CalendarEvents extends LitElement {
-  @state() private calendarEvents: CalendarEntity[] = [];
+  @state() private upcomingEvents: CalendarEntity[] = [];
 
   static styles = css`
     :host {
@@ -50,49 +50,37 @@ export class CalendarEvents extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.loadCalendarEvents();
+    this.initializeCalendarEvents();
   }
 
-  private async loadCalendarEvents() {
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    // Clean up service
+    calendarEventsService.dispose();
+  }
+
+  private async initializeCalendarEvents() {
     try {
-      // Initialize the Home Assistant service
-      const initialized = await homeAssistantService.initialize();
+      // Initialize the calendar events service
+      const initialized = await calendarEventsService.initialize();
 
       if (initialized) {
-        // Get calendar events
-        this.calendarEvents = await homeAssistantService.getCalendarEvents();
-        this.requestUpdate();
+        // Subscribe to calendar events updates
+        calendarEventsService.subscribeEvents((events) => {
+          this.upcomingEvents = events;
+          this.requestUpdate();
+        });
       } else {
-        console.error('Failed to initialize Home Assistant service for calendar events');
+        console.error('Failed to initialize calendar events service');
       }
     } catch (error) {
-      console.error('Error loading calendar events:', error);
+      console.error('Error initializing calendar events service:', error);
     }
   }
 
   render() {
-    if (this.calendarEvents.length === 0) {
-      this.dispatchEvent(new CustomEvent('has-events', { detail: { hasEvents: false } }));
-      return null;
-    }
-
-    // Sort events by start time
-    const sortedEvents = [...this.calendarEvents].sort((a, b) => {
-      return new Date(a.attributes.start_time).getTime() - new Date(b.attributes.start_time).getTime();
-    });
-
-    // Only show events for today and tomorrow
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(23, 59, 59, 999);
-
-    const upcomingEvents = sortedEvents.filter(event => {
-      const eventEnd = new Date(event.attributes.end_time);
-      return eventEnd >= now && eventEnd <= tomorrow;
-    });
-
-    if (upcomingEvents.length === 0) {
+    if (this.upcomingEvents.length === 0) {
       this.dispatchEvent(new CustomEvent('has-events', { detail: { hasEvents: false } }));
       return null;
     }
@@ -103,11 +91,10 @@ export class CalendarEvents extends LitElement {
       <div class="calendar-events">
         <h3>Upcoming Events</h3>
         <ul>
-          ${upcomingEvents.map(event => {
-            const startTime = new Date(event.attributes.start_time);
+          ${this.upcomingEvents.map(event => {
             return html`
               <li>
-                <div class="event-time">${startTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                <div class="event-time">${calendarEventsService.formatEventTime(event.attributes.start_time)}</div>
                 <div class="event-title">${event.attributes.friendly_name}</div>
               </li>
             `;

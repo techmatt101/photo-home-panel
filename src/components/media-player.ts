@@ -1,11 +1,9 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { MediaPlayerEntity } from '../types/home-assistant.types';
-import homeAssistantService from '../services/home-assistant-service';
+import { customElement } from 'lit/decorators.js';
+import mediaPlayerService from '../services/media-player-service';
 
 @customElement('media-player')
 export class MediaPlayer extends LitElement {
-  @state() private mediaStatus: MediaPlayerEntity | null = null;
 
   static styles = css`
     :host {
@@ -65,19 +63,25 @@ export class MediaPlayer extends LitElement {
     this.initializeMediaPlayer();
   }
 
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    // Clean up service
+    mediaPlayerService.dispose();
+  }
+
   private async initializeMediaPlayer() {
     try {
-      // Initialize the Home Assistant service
-      const initialized = await homeAssistantService.initialize();
+      // Initialize the media player service
+      const initialized = await mediaPlayerService.initialize();
 
       if (initialized) {
-        // Subscribe to media player updates
-        homeAssistantService.subscribeMediaPlayer((mediaPlayer) => {
-          this.mediaStatus = mediaPlayer;
+        // Subscribe to media player updates to trigger re-renders
+        mediaPlayerService.subscribeMediaPlayer(() => {
           this.requestUpdate();
         });
       } else {
-        console.error('Failed to initialize Home Assistant service for media player');
+        console.error('Failed to initialize media player service');
       }
     } catch (error) {
       console.error('Error initializing media player service:', error);
@@ -86,28 +90,27 @@ export class MediaPlayer extends LitElement {
 
   // Control media player
   private async mediaCommand(command: 'play' | 'pause' | 'next' | 'previous') {
-    if (!this.mediaStatus) return;
-
-    try {
-      await homeAssistantService.mediaPlayerCommand(
-        'media_player.spotify',
-        command
-      );
-    } catch (error) {
-      console.error(`Failed to send ${command} command to media player:`, error);
-    }
+    await mediaPlayerService.mediaCommand(command);
   }
 
   render() {
-    if (!this.mediaStatus || this.mediaStatus.state === 'off' || this.mediaStatus.state === 'idle') {
-      this.dispatchEvent(new CustomEvent('has-media', { detail: { hasMedia: false } }));
+    const hasMedia = mediaPlayerService.hasMedia();
+
+    // Dispatch event to notify parent components about media availability
+    this.dispatchEvent(new CustomEvent('has-media', { detail: { hasMedia } }));
+
+    if (!hasMedia) {
       return null;
     }
 
-    this.dispatchEvent(new CustomEvent('has-media', { detail: { hasMedia: true } }));
+    const mediaStatus = mediaPlayerService.getMediaStatus();
+    const isPlaying = mediaPlayerService.isPlaying();
 
-    const { state, attributes } = this.mediaStatus;
-    const isPlaying = state === 'playing';
+    if (!mediaStatus) {
+      return null;
+    }
+
+    const { attributes } = mediaStatus;
 
     return html`
       <div class="media-status">

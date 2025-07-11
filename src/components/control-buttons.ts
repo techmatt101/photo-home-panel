@@ -1,11 +1,9 @@
 import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { MediaPlayerEntity } from '../types/home-assistant.types';
-import homeAssistantService from '../services/home-assistant-service';
+import { customElement } from 'lit/decorators.js';
+import controlButtonsService from '../services/control-buttons-service';
 
 @customElement('control-buttons')
 export class ControlButtons extends LitElement {
-  @state() private tvStatus: MediaPlayerEntity | null = null;
 
   static styles = css`
     :host {
@@ -51,52 +49,52 @@ export class ControlButtons extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.initializeTVStatus();
+    this.initializeControlButtons();
   }
 
-  private async initializeTVStatus() {
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    // Clean up service
+    controlButtonsService.dispose();
+  }
+
+  private async initializeControlButtons() {
     try {
-      // Initialize the Home Assistant service
-      const initialized = await homeAssistantService.initialize();
+      // Initialize the control buttons service
+      const initialized = await controlButtonsService.initialize();
 
       if (initialized) {
-        // Subscribe to TV updates
-        homeAssistantService.subscribeTV((tv) => {
-          this.tvStatus = tv;
+        // Subscribe to TV updates to trigger re-renders
+        controlButtonsService.subscribeTV(() => {
           this.requestUpdate();
         });
       } else {
-        console.error('Failed to initialize Home Assistant service for TV status');
+        console.error('Failed to initialize control buttons service');
       }
     } catch (error) {
-      console.error('Error initializing TV status:', error);
+      console.error('Error initializing control buttons service:', error);
     }
   }
 
   // Toggle a light
   private async toggleLight(entityId: string) {
-    try {
-      await homeAssistantService.toggleLight(entityId);
-    } catch (error) {
-      console.error(`Failed to toggle light ${entityId}:`, error);
-    }
+    await controlButtonsService.toggleLight(entityId);
   }
 
   // Start vacuum cleaner
   private async startVacuum() {
-    try {
-      await homeAssistantService.startVacuum();
-    } catch (error) {
-      console.error('Failed to start vacuum:', error);
-    }
+    await controlButtonsService.startVacuum();
   }
 
   render() {
+    const isTVOn = controlButtonsService.isTVOn();
+
     return html`
       <div class="controls">
         <button class="control-button" title="Toggle living room lights" @click=${() => this.toggleLight('light.living_room')}>💡</button>
         <button class="control-button" title="Start vacuum cleaner" @click=${this.startVacuum}>🧹</button>
-        ${this.tvStatus && this.tvStatus.state !== 'off' ? html`
+        ${isTVOn ? html`
           <button class="control-button" title="TV is on">📺</button>
         ` : ''}
         <button class="control-button" title="Settings">⚙️</button>
