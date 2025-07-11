@@ -1,11 +1,13 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
-import photoPrismService, { PhotoPrismPhoto } from '../services/photoprism-service';
-import homeAssistantService, { 
+import photoPrismService from '../services/photoprism-service';
+import homeAssistantService from '../services/home-assistant-service';
+import { PhotoPrismPhoto } from '../types/photoprism.types';
+import { 
   WeatherEntity, 
   CalendarEntity, 
   MediaPlayerEntity 
-} from '../services/home-assistant-service';
+} from '../types/home-assistant.types';
 
 @customElement('photo-slideshow')
 export class PhotoSlideshow extends LitElement {
