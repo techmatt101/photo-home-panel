@@ -188,18 +188,6 @@ export class PhotoSlideshowCore extends LitElement {
     }
   }
 
-  private usePlaceholderImages() {
-    // Use placeholder images if services fail
-    this.currentImageUrl = 'https://picsum.photos/1200/800';
-    this.nextImageUrl = 'https://picsum.photos/1200/801';
-    this.previousImageUrl = 'https://picsum.photos/1200/799';
-
-    if (this.emitEvents) {
-      this.dispatchEvent(new CustomEvent('image-changed', { 
-        detail: { image: slideshowService.getCurrentImage() } 
-      }));
-    }
-  }
 
 
   // Public methods that can be called from outside
@@ -209,7 +197,9 @@ export class PhotoSlideshowCore extends LitElement {
     this.transitioning = true;
 
     // Use the slideshow service to move to the next image
-    await slideshowService.nextImage();
+    if (slideshowService) {
+      await slideshowService.nextImage();
+    }
 
     // Update the image URLs
     this.updateImageUrls();
@@ -227,7 +217,9 @@ export class PhotoSlideshowCore extends LitElement {
     this.transitioning = true;
 
     // Use the slideshow service to move to the previous image
-    await slideshowService.previousImage();
+    if (slideshowService) {
+      await slideshowService.previousImage();
+    }
 
     // Update the image URLs
     this.updateImageUrls();

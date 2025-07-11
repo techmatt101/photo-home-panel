@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {
   Connection,
   createConnection,
@@ -13,10 +12,7 @@ import {
   WeatherEntity,
   CalendarEntity,
   MediaPlayerEntity,
-  LightEntity,
-  VacuumEntity,
-  HomeAssistantConfig,
-  SavedAuth
+  HomeAssistantConfig
 } from '../types/home-assistant.types';
 
 class HomeAssistantService {
@@ -65,7 +61,7 @@ class HomeAssistantService {
           auth = await getAuth({
             hassUrl: this.config.url,
             saveTokens: () => {},
-            loadTokens: () => ({
+            loadTokens: async () => ({
               hassUrl: this.config.url,
               clientId: '',
               expires: 0,
@@ -78,11 +74,11 @@ class HomeAssistantService {
           // Otherwise use the normal auth flow
           auth = await getAuth({
             hassUrl: this.config.url,
-            saveTokens: (tokens: AuthData) => {
+            saveTokens: (tokens: AuthData | null) => {
               // In a real app, save tokens to localStorage
               console.log('Saving tokens:', tokens);
             },
-            loadTokens: () => {
+            loadTokens: async () => {
               // In a real app, load tokens from localStorage
               return undefined;
             }

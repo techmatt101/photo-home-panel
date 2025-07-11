@@ -22,8 +22,10 @@ class AutoPlayService {
 
     // Set a timer to advance to the next slide
     this.autoPlayTimer = window.setTimeout(async () => {
-      await slideshowService.nextImage();
-      
+      if (slideshowService) {
+        await slideshowService.nextImage();
+      }
+
       // Restart the timer after advancing
       if (this.autoPlay) {
         this.startAutoPlay();
@@ -42,7 +44,7 @@ class AutoPlayService {
   // Toggle auto-play
   toggleAutoPlay(): boolean {
     this.autoPlay = !this.autoPlay;
-    
+
     if (this.autoPlay) {
       this.startAutoPlay();
     } else {
@@ -55,7 +57,7 @@ class AutoPlayService {
   // Set slide duration
   setSlideDuration(duration: number): void {
     this.slideDuration = duration;
-    
+
     // Restart auto-play with new duration if it's currently active
     if (this.autoPlay && this.autoPlayTimer) {
       this.startAutoPlay();

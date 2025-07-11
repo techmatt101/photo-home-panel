@@ -1,7 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
 import { PhotoPrismPhoto } from '../types/photoprism.types';
-import { CalendarEntity, MediaPlayerEntity } from '../types/home-assistant.types';
 
 // Import sub-components
 import './photo-slideshow-core';

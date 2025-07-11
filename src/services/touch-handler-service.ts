@@ -8,7 +8,7 @@ class TouchHandlerService {
   // Initialize the touch handler service
   initialize(element: HTMLElement): void {
     this.element = element;
-    
+
     // Set up touch event listeners
     this.element.addEventListener('touchstart', this.handleTouchStart.bind(this));
     this.element.addEventListener('touchmove', this.handleTouchMove.bind(this));
@@ -23,7 +23,7 @@ class TouchHandlerService {
   }
 
   // Handle touch move event
-  private handleTouchMove(evt: TouchEvent): void {
+  private handleTouchMove(_evt: TouchEvent): void {
     if (!this.xDown || !this.yDown) {
       return;
     }
@@ -42,12 +42,14 @@ class TouchHandlerService {
     const yDiff = this.yDown - yUp;
 
     if (Math.abs(xDiff) > Math.abs(yDiff)) {
-      if (xDiff > 0) {
-        // Swipe left - next image
-        slideshowService.nextImage();
-      } else {
-        // Swipe right - previous image
-        slideshowService.previousImage();
+      if (slideshowService) {
+        if (xDiff > 0) {
+          // Swipe left - next image
+          slideshowService.nextImage();
+        } else {
+          // Swipe right - previous image
+          slideshowService.previousImage();
+        }
       }
     }
 

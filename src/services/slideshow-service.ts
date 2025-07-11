@@ -4,8 +4,8 @@ import { PhotoPrismPhoto } from '../types/photoprism.types';
 class SlideshowService {
   private cachedPhotos: PhotoPrismPhoto[] = [];
   private currentImage: PhotoPrismPhoto | null = null;
-  private nextImage: PhotoPrismPhoto | null = null;
-  private previousImage: PhotoPrismPhoto | null = null;
+  private nextImageObj: PhotoPrismPhoto | null = null;
+  private previousImageObj: PhotoPrismPhoto | null = null;
   private orientation: 'landscape' | 'portrait' = 'landscape';
   private albumUid: string = '';
   private cacheSize: number = 10;
@@ -83,8 +83,8 @@ class SlideshowService {
       CellAccuracy: 0
     } as PhotoPrismPhoto;
 
-    this.nextImage = { ...this.currentImage, UID: 'placeholder-next' };
-    this.previousImage = { ...this.currentImage, UID: 'placeholder-prev' };
+    this.nextImageObj = { ...this.currentImage, UID: 'placeholder-next' };
+    this.previousImageObj = { ...this.currentImage, UID: 'placeholder-prev' };
   }
 
   // Load photos from PhotoPrism
@@ -114,8 +114,8 @@ class SlideshowService {
 
       // Set the current, next, and previous photos
       this.currentImage = photos[0];
-      this.nextImage = photos.length > 1 ? photos[1] : photos[0];
-      this.previousImage = photos.length > 2 ? photos[2] : photos[0];
+      this.nextImageObj = photos.length > 1 ? photos[1] : photos[0];
+      this.previousImageObj = photos.length > 2 ? photos[2] : photos[0];
     } catch (error) {
       console.error('Error loading photos:', error);
       this.usePlaceholderImages();
@@ -129,12 +129,12 @@ class SlideshowService {
 
   // Get the next image
   getNextImage(): PhotoPrismPhoto | null {
-    return this.nextImage;
+    return this.nextImageObj;
   }
 
   // Get the previous image
   getPreviousImage(): PhotoPrismPhoto | null {
-    return this.previousImage;
+    return this.previousImageObj;
   }
 
   // Get the URL for the current image
@@ -144,16 +144,16 @@ class SlideshowService {
 
   // Get the URL for the next image
   getNextImageUrl(): string | null {
-    return this.nextImage ? photoPrismService.getPhotoUrl(this.nextImage.Hash) : null;
+    return this.nextImageObj ? photoPrismService.getPhotoUrl(this.nextImageObj.Hash) : null;
   }
 
   // Get the URL for the previous image
   getPreviousImageUrl(): string | null {
-    return this.previousImage ? photoPrismService.getPhotoUrl(this.previousImage.Hash) : null;
+    return this.previousImageObj ? photoPrismService.getPhotoUrl(this.previousImageObj.Hash) : null;
   }
 
   // Move to the next image
-  async nextImage(): Promise<PhotoPrismPhoto | null> {
+  public async nextImage(): Promise<PhotoPrismPhoto | null> {
     if (this.transitioning) return this.currentImage;
 
     this.transitioning = true;
@@ -168,8 +168,8 @@ class SlideshowService {
         const nextIndex = (currentIndex + 1) % this.cachedPhotos.length;
 
         // Update the previous, current, and next images
-        this.previousImage = this.currentImage;
-        this.currentImage = this.nextImage;
+        this.previousImageObj = this.currentImage;
+        this.currentImage = this.nextImageObj;
 
         // If we're near the end of our cache, load more photos
         if (nextIndex >= this.cachedPhotos.length - 2) {
@@ -191,14 +191,14 @@ class SlideshowService {
         }
 
         // Set the next image
-        this.nextImage = this.cachedPhotos[nextIndex];
+        this.nextImageObj = this.cachedPhotos[nextIndex];
       }
     } else {
       // Fallback to placeholder behavior
-      const tempImage = this.nextImage;
-      this.previousImage = this.currentImage;
+      const tempImage = this.nextImageObj;
+      this.previousImageObj = this.currentImage;
       this.currentImage = tempImage;
-      this.nextImage = { ...this.currentImage!, UID: `placeholder-${Date.now()}` };
+      this.nextImageObj = { ...this.currentImage!, UID: `placeholder-${Date.now()}` };
     }
 
     // After a short delay, mark as not transitioning
@@ -210,7 +210,7 @@ class SlideshowService {
   }
 
   // Move to the previous image
-  async previousImage(): Promise<PhotoPrismPhoto | null> {
+  public async previousImage(): Promise<PhotoPrismPhoto | null> {
     if (this.transitioning) return this.currentImage;
 
     this.transitioning = true;
@@ -225,8 +225,8 @@ class SlideshowService {
         const prevIndex = (currentIndex - 1 + this.cachedPhotos.length) % this.cachedPhotos.length;
 
         // Update the previous, current, and next images
-        this.nextImage = this.currentImage;
-        this.currentImage = this.previousImage;
+        this.nextImageObj = this.currentImage;
+        this.currentImage = this.previousImageObj;
 
         // If we're near the beginning of our cache, load more photos
         if (prevIndex <= 1) {
@@ -248,14 +248,14 @@ class SlideshowService {
         }
 
         // Set the previous image
-        this.previousImage = this.cachedPhotos[prevIndex];
+        this.previousImageObj = this.cachedPhotos[prevIndex];
       }
     } else {
       // Fallback to placeholder behavior
-      const tempImage = this.previousImage;
-      this.nextImage = this.currentImage;
+      const tempImage = this.previousImageObj;
+      this.nextImageObj = this.currentImage;
       this.currentImage = tempImage;
-      this.previousImage = { ...this.currentImage!, UID: `placeholder-${Date.now()}` };
+      this.previousImageObj = { ...this.currentImage!, UID: `placeholder-${Date.now()}` };
     }
 
     // After a short delay, mark as not transitioning
