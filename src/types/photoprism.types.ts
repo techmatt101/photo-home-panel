@@ -47,12 +47,19 @@ export interface PhotoPrismConfig {
   apiKey: string;
 }
 
+// Response from PhotoPrism config endpoint
+export interface PhotoPrismConfigResponse {
+  previewToken: string;
+  [key: string]: any; // Allow for other properties in the response
+}
+
 // Search parameters for photos
 export interface PhotoSearchParams {
   q?: string;
   count?: number;
   offset?: number;
   order?: string;
+  path?: string;
   favorite?: boolean;
   album?: string;
   year?: number;

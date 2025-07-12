@@ -72,7 +72,28 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
-    open: true
+    open: true,
+    proxy: {
+      '/api/photoprism': {
+        target: 'http://nas:2342',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/photoprism/, '/api/'),
+        secure: false
+      },
+      '/api/ha': {
+        target: 'https://homeassistant.local',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ha/, '/api'),
+        secure: false
+      },
+      '/api/ha/websocket': {
+        target: 'wss://homeassistant.local',
+        ws: true,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/ha\/websocket/, '/api/websocket'),
+        secure: false
+      }
+    }
   },
   build: {
     sourcemap: true,

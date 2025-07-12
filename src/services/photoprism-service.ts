@@ -3,6 +3,7 @@ import {
   PhotoPrismPhoto,
   PhotoPrismAlbum,
   PhotoPrismConfig,
+  PhotoPrismConfigResponse,
   PhotoSearchParams
 } from '../types/photoprism.types';
 import authService, { AuthServiceRegistration } from './auth-service';
@@ -10,6 +11,7 @@ import authService, { AuthServiceRegistration } from './auth-service';
 class PhotoPrismService {
   private config: PhotoPrismConfig | null = null;
   private token: string | null = null;
+  private previewToken: string | null = null;
   private photoCache: Map<string, PhotoPrismPhoto> = new Map();
   private albumCache: Map<string, PhotoPrismAlbum> = new Map();
   private authRequested: boolean = false;
@@ -98,18 +100,28 @@ class PhotoPrismService {
       this.authRequested = false;
 
       // Verify the API key by making a simple request
-      const testResponse = await axios.get(`${this.config.baseUrl}/api/v1/config`, {
+      const testResponse = await axios.get(`/api/photoprism/v1/config`, {
         headers: this.getHeaders()
       });
 
       if (!testResponse.data) {
         throw new Error('Failed to verify API key');
       }
+
+      // Extract and store the previewToken from the config response
+      const configResponse = testResponse.data as PhotoPrismConfigResponse;
+      if (configResponse.previewToken) {
+        this.previewToken = configResponse.previewToken;
+        console.log('PhotoPrism preview token retrieved successfully');
+      } else {
+        console.warn('PhotoPrism preview token not found in config response');
+      }
     } catch (error) {
       console.error('PhotoPrism API key verification failed:', error);
 
-      // Clear token on verification failure
+      // Clear tokens on verification failure
       this.token = null;
+      this.previewToken = null;
 
       throw error;
     }
@@ -125,6 +137,7 @@ class PhotoPrismService {
   // Reset authentication state
   resetAuth(): void {
     this.token = null;
+    this.previewToken = null;
     this.authRequested = false;
   }
 
@@ -142,7 +155,7 @@ class PhotoPrismService {
         await this.login();
       }
 
-      const response = await axios.get(`${this.config.baseUrl}/api/v1/photos`, {
+      const response = await axios.get(`/api/photoprism/v1/photos`, {
         headers: this.getHeaders(),
         params
       });
@@ -182,7 +195,7 @@ class PhotoPrismService {
         await this.login();
       }
 
-      const response = await axios.get(`${this.config.baseUrl}/api/v1/photos/${uid}`, {
+      const response = await axios.get(`/api/photoprism/v1/photos/${uid}`, {
         headers: this.getHeaders()
       });
 
@@ -203,7 +216,15 @@ class PhotoPrismService {
     if (!this.config) {
       throw new Error('PhotoPrism configuration is not available');
     }
-    return `${this.config.baseUrl}/api/v1/t/${hash}/${size}`;
+
+    // If we have a previewToken, include it in the URL
+    if (this.previewToken) {
+      return `/api/photoprism/v1/t/${hash}/${this.previewToken}/${size}`;
+    } else {
+      // Fall back to the old URL format if no token is available
+      console.warn('PhotoPrism preview token not available, using fallback URL format');
+      return `/api/photoprism/v1/t/${hash}/${size}`;
+    }
   }
 
   // Get albums
@@ -220,7 +241,7 @@ class PhotoPrismService {
         await this.login();
       }
 
-      const response = await axios.get(`${this.config.baseUrl}/api/v1/albums`, {
+      const response = await axios.get(`/api/photoprism/v1/albums`, {
         headers: this.getHeaders()
       });
 
@@ -254,7 +275,7 @@ class PhotoPrismService {
         await this.login();
       }
 
-      const response = await axios.get(`${this.config.baseUrl}/api/v1/albums/${albumUid}/photos`, {
+      const response = await axios.get(`/api/photoprism/v1/albums/${albumUid}/photos`, {
         headers: this.getHeaders()
       });
 
@@ -280,7 +301,8 @@ class PhotoPrismService {
       // Get a larger set of photos to select from
       const allPhotos = await this.searchPhotos({
         count: count * 3,
-        order: 'newest'
+        order: 'newest',
+        path: 'photography/*'
       });
 
       if (allPhotos.length === 0) {
