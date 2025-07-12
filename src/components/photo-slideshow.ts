@@ -1,21 +1,17 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state, property } from 'lit/decorators.js';
 import { PhotoPrismPhoto } from '../types/photoprism.types';
+import slideshowService from '../services/slideshow-service';
+import autoPlayService from '../services/auto-play-service';
+import touchHandlerService from '../services/touch-handler-service';
 
-// Import sub-components
-import './photo-slideshow-core';
-import './info-overlay';
-import './time-weather';
-import './media-player';
-import './calendar-events';
-import './control-buttons';
-import './side-panel';
-
-@customElement('photo-slideshow')
+@customElement('photo-slideshow-core')
 export class PhotoSlideshow extends LitElement {
-  @state() private currentImage: PhotoPrismPhoto | null = null;
-  @state() private hasCalendarEvents: boolean = false;
-  @state() private hasMediaPlayer: boolean = false;
+  @state() private loading = true;
+  @state() private currentImageUrl: string | null = null;
+  @state() private nextImageUrl: string | null = null;
+  @state() private previousImageUrl: string | null = null;
+  @state() private transitioning = false;
 
   // Configuration properties
   @property({ type: String }) albumUid: string = '';
@@ -23,6 +19,9 @@ export class PhotoSlideshow extends LitElement {
   @property({ type: Number }) transitionDuration: number = 1000;
   @property({ type: Boolean }) autoPlay: boolean = true;
   @property({ type: Number }) slideDuration: number = 10000; // 10 seconds
+
+  // Events
+  @property({ type: Boolean }) emitEvents: boolean = false;
 
   static styles = css`
     :host {
@@ -32,68 +31,241 @@ export class PhotoSlideshow extends LitElement {
       position: relative;
       overflow: hidden;
       background-color: #000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      --primary-color: #ffffff;
-      --secondary-color: rgba(255, 255, 255, 0.8);
-      --background-overlay: rgba(0, 0, 0, 0.5);
-      --accent-color: #4285f4;
       --transition-duration: 1s;
+    }
+
+    .slideshow-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    /* Image containers and transitions */
+    .image-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: opacity var(--transition-duration) ease-in-out;
+    }
+
+    .image-container.current {
+      opacity: 1;
+      z-index: 2;
+    }
+
+    .image-container.next,
+    .image-container.previous {
+      opacity: 0;
+      z-index: 1;
+    }
+
+    .image-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      filter: blur(20px);
+      transform: scale(1.1);
+      opacity: 0.5;
+    }
+
+    .image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      z-index: 1;
+      position: relative;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Navigation buttons */
+    .nav-buttons {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      z-index: 3;
+      transform: translateY(-50%);
+    }
+
+    .nav-button {
+      background: rgba(0, 0, 0, 0.5);
+      color: #ffffff;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      margin: 0 20px;
+      font-size: 24px;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .nav-button:hover {
+      background: rgba(0, 0, 0, 0.7);
+      transform: scale(1.1);
+    }
+
+    @media (max-width: 768px) {
+      .nav-button {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        margin: 0 10px;
+      }
     }
   `;
 
   constructor() {
     super();
-    // Hide the loading spinner when the component is fully loaded
-    window.addEventListener('load', () => {
-      const loadingElement = document.querySelector('.loading');
-      if (loadingElement) {
-        loadingElement.remove();
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    // Initialize services
+    this.initializeServices();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+
+    // Clean up auto-play service
+    autoPlayService.dispose();
+
+    // Clean up touch handler service
+    touchHandlerService.dispose();
+  }
+
+  private async initializeServices() {
+    try {
+      // Initialize the slideshow service
+      const initialized = await slideshowService.initialize(this.albumUid, this.cacheSize);
+
+      // Initialize the auto-play service
+      autoPlayService.initialize(this.autoPlay, this.slideDuration);
+
+      // Initialize the touch handler service
+      touchHandlerService.initialize(this);
+
+      if (initialized) {
+        // Update image URLs from the slideshow service
+        this.updateImageUrls();
+      } else {
+        console.error('Failed to initialize slideshow service');
       }
-    });
+    } catch (error) {
+      console.error('Error initializing services:', error);
+    } finally {
+      this.loading = false;
+      this.dispatchEvent(new CustomEvent('loading-changed', { detail: { loading: this.loading } }));
+    }
   }
 
-  // Handle image change events from the slideshow core
-  private handleImageChange(e: CustomEvent) {
-    this.currentImage = e.detail.image;
-    this.requestUpdate();
+  private updateImageUrls() {
+    // Get image URLs from the slideshow service
+    this.currentImageUrl = slideshowService.getCurrentImageUrl();
+    this.nextImageUrl = slideshowService.getNextImageUrl();
+    this.previousImageUrl = slideshowService.getPreviousImageUrl();
+
+    // Emit event if needed
+    if (this.emitEvents) {
+      this.dispatchEvent(new CustomEvent('image-changed', { 
+        detail: { image: slideshowService.getCurrentImage() } 
+      }));
+    }
   }
 
-  // Check if calendar events or media player should be shown
-  private handleCalendarEventsChange(e: CustomEvent) {
-    this.hasCalendarEvents = e.detail.hasEvents;
-    this.requestUpdate();
+
+
+  // Public methods that can be called from outside
+  public async nextSlide() {
+    if (this.transitioning) return;
+
+    this.transitioning = true;
+
+    // Use the slideshow service to move to the next image
+    if (slideshowService) {
+      await slideshowService.nextImage();
+    }
+
+    // Update the image URLs
+    this.updateImageUrls();
+
+    // After the transition duration, mark as not transitioning
+    setTimeout(() => {
+      this.transitioning = false;
+      this.requestUpdate();
+    }, this.transitionDuration);
   }
 
-  private handleMediaPlayerChange(e: CustomEvent) {
-    this.hasMediaPlayer = e.detail.hasMedia;
-    this.requestUpdate();
+  public async previousSlide() {
+    if (this.transitioning) return;
+
+    this.transitioning = true;
+
+    // Use the slideshow service to move to the previous image
+    if (slideshowService) {
+      await slideshowService.previousImage();
+    }
+
+    // Update the image URLs
+    this.updateImageUrls();
+
+    // After the transition duration, mark as not transitioning
+    setTimeout(() => {
+      this.transitioning = false;
+      this.requestUpdate();
+    }, this.transitionDuration);
+  }
+
+  public getCurrentImage(): PhotoPrismPhoto | null {
+    return slideshowService.getCurrentImage();
   }
 
   render() {
     return html`
-      <photo-slideshow-core
-        albumUid="${this.albumUid}"
-        cacheSize="${this.cacheSize}"
-        transitionDuration="${this.transitionDuration}"
-        ?autoPlay="${this.autoPlay}"
-        slideDuration="${this.slideDuration}"
-        ?emitEvents="${true}"
-        @image-changed="${this.handleImageChange}"
-      >
-        <!-- Info overlay with time and weather -->
-        <info-overlay .photo="${this.currentImage}">
-          <time-weather></time-weather>
-        </info-overlay>
+      <div class="slideshow-container">
+        ${this.currentImageUrl ? html`
+          <div class="image-container current">
+            <div class="image-background" style="background-image: url(${this.currentImageUrl})"></div>
+            <img class="image" src="${this.currentImageUrl}" alt="Current photo" />
+          </div>
+        ` : ''}
 
-        <!-- Side panel with calendar events and media player -->
-        <side-panel ?hasContent="${this.hasCalendarEvents || this.hasMediaPlayer}">
-          <calendar-events @has-events="${this.handleCalendarEventsChange}"></calendar-events>
-          <media-player @has-media="${this.handleMediaPlayerChange}"></media-player>
-        </side-panel>
+        ${this.nextImageUrl ? html`
+          <div class="image-container next">
+            <div class="image-background" style="background-image: url(${this.nextImageUrl})"></div>
+            <img class="image" src="${this.nextImageUrl}" alt="Next photo" />
+          </div>
+        ` : ''}
 
-        <!-- Control buttons -->
-        <control-buttons></control-buttons>
-      </photo-slideshow-core>
+        ${this.previousImageUrl ? html`
+          <div class="image-container previous">
+            <div class="image-background" style="background-image: url(${this.previousImageUrl})"></div>
+            <img class="image" src="${this.previousImageUrl}" alt="Previous photo" />
+          </div>
+        ` : ''}
+
+        <div class="nav-buttons">
+          <button class="nav-button" @click=${this.previousSlide}>❮</button>
+          <button class="nav-button" @click=${this.nextSlide}>❯</button>
+        </div>
+
+        <slot></slot>
+      </div>
     `;
   }
 }
