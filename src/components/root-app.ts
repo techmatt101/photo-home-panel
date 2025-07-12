@@ -10,6 +10,7 @@ import './media-player';
 import './calendar-events';
 import './control-buttons';
 import './side-panel';
+import './login-dialog';
 
 @customElement('root-app')
 export class RootApp extends LitElement {
@@ -38,6 +39,33 @@ export class RootApp extends LitElement {
       --background-overlay: rgba(0, 0, 0, 0.5);
       --accent-color: #4285f4;
       --transition-duration: 1s;
+    }
+
+    /* Loading indicator */
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #000;
+      z-index: 9999;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   `;
 
@@ -71,6 +99,12 @@ export class RootApp extends LitElement {
 
   render() {
     return html`
+<!--      <div class="loading">-->
+<!--        <div class="loading-spinner"></div>-->
+<!--      </div>-->
+
+      <login-dialog></login-dialog>
+
       <photo-slideshow
         albumUid="${this.albumUid}"
         cacheSize="${this.cacheSize}"

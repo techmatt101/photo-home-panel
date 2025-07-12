@@ -5,7 +5,7 @@ import slideshowService from '../services/slideshow-service';
 import autoPlayService from '../services/auto-play-service';
 import touchHandlerService from '../services/touch-handler-service';
 
-@customElement('photo-slideshow-core')
+@customElement('photo-slideshow')
 export class PhotoSlideshow extends LitElement {
   @state() private loading = true;
   @state() private currentImageUrl: string | null = null;

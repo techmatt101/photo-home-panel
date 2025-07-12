@@ -194,17 +194,17 @@ export class LoginDialog extends LitElement {
 
   constructor() {
     super();
-    this.addEventListener(EVENT_AUTH_REQUIRED, this.handleAuthRequired as EventListener);
+    this.addEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
   }
 
   connectedCallback() {
     super.connectedCallback();
-    window.addEventListener(EVENT_AUTH_REQUIRED, this.handleAuthRequired as EventListener);
+    window.addEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    window.removeEventListener(EVENT_AUTH_REQUIRED, this.handleAuthRequired as EventListener);
+    window.removeEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
   }
 
   private handleAuthRequired(event: CustomEvent<AuthRequiredEventDetail>) {
@@ -222,6 +222,7 @@ export class LoginDialog extends LitElement {
 
     // Get form fields for this service
     this.formFields = authService.getFormFields(this.authType);
+    console.log('formFields', this.formFields);
 
     // Initialize form values from saved config
     const config = authService.getConfig(this.authType) || {};
@@ -233,6 +234,7 @@ export class LoginDialog extends LitElement {
     }
 
     this.open = true;
+    this.requestUpdate();
   }
 
   private handleSubmit(e: Event) {
@@ -317,6 +319,7 @@ export class LoginDialog extends LitElement {
   }
 
   render() {
+    console.log('render', this.formFields, this.open);
     const serviceName = this.authType ? authService.getServiceName(this.authType) : '';
 
     return html`
