@@ -5,35 +5,58 @@ import {
   PhotoPrismConfig,
   PhotoSearchParams
 } from '../types/photoprism.types';
+import authService from './auth-service';
 
 class PhotoPrismService {
-  private config: PhotoPrismConfig;
+  private config: PhotoPrismConfig | null = null;
   private token: string | null = null;
   private photoCache: Map<string, PhotoPrismPhoto> = new Map();
   private albumCache: Map<string, PhotoPrismAlbum> = new Map();
+  private authRequested: boolean = false;
 
   constructor() {
-    // Default configuration - should be loaded from user settings in a real app
-    this.config = {
-      baseUrl: 'https://photoprism.local',
-      username: 'admin',
-      password: 'admin'
-    };
+    // Configuration will be loaded from auth service
   }
 
   // Initialize the service and authenticate
   async initialize(): Promise<boolean> {
     try {
-      await this.login();
-      return true;
+      // Get config from auth service
+      this.config = authService.getPhotoPrismConfig();
+
+      // If no config is available, request authentication
+      if (!this.config && !this.authRequested) {
+        this.authRequested = true;
+        authService.requestPhotoPrismAuth('Please log in to PhotoPrism to view your photos.');
+        return false;
+      }
+
+      // If we have a config, try to login
+      if (this.config) {
+        await this.login();
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.error('Failed to initialize PhotoPrism service:', error);
+
+      // If login fails, request authentication
+      if (!this.authRequested) {
+        this.authRequested = true;
+        authService.requestPhotoPrismAuth('Authentication failed. Please check your credentials.');
+      }
+
       return false;
     }
   }
 
   // Login to PhotoPrism API
   private async login(): Promise<void> {
+    if (!this.config) {
+      throw new Error('PhotoPrism configuration is not available');
+    }
+
     try {
       const response = await axios.post(`${this.config.baseUrl}/api/v1/session`, {
         username: this.config.username,
@@ -42,11 +65,16 @@ class PhotoPrismService {
 
       if (response.data && response.data.id) {
         this.token = response.data.id;
+        this.authRequested = false; // Reset auth requested flag on successful login
       } else {
         throw new Error('Invalid response from PhotoPrism API');
       }
     } catch (error) {
       console.error('PhotoPrism login failed:', error);
+
+      // Clear token on login failure
+      this.token = null;
+
       throw error;
     }
   }
@@ -58,9 +86,22 @@ class PhotoPrismService {
     };
   }
 
+  // Reset authentication state
+  resetAuth(): void {
+    this.token = null;
+    this.authRequested = false;
+  }
+
   // Search for photos with various filters
   async searchPhotos(params: PhotoSearchParams): Promise<PhotoPrismPhoto[]> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          return [];
+        }
+      }
+
       if (!this.token) {
         await this.login();
       }
@@ -94,6 +135,13 @@ class PhotoPrismService {
     }
 
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          return null;
+        }
+      }
+
       if (!this.token) {
         await this.login();
       }
@@ -116,12 +164,22 @@ class PhotoPrismService {
 
   // Get the URL for a photo with specified size
   getPhotoUrl(hash: string, size: 'thumb' | 'fit_720' | 'fit_1280' | 'fit_1920' | 'fit_2048' | 'fit_2560' | 'fit_3840' | 'original' = 'fit_1920'): string {
+    if (!this.config) {
+      throw new Error('PhotoPrism configuration is not available');
+    }
     return `${this.config.baseUrl}/api/v1/t/${hash}/${size}`;
   }
 
   // Get albums
   async getAlbums(): Promise<PhotoPrismAlbum[]> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          return [];
+        }
+      }
+
       if (!this.token) {
         await this.login();
       }
@@ -149,6 +207,13 @@ class PhotoPrismService {
   // Get photos in an album
   async getAlbumPhotos(albumUid: string): Promise<PhotoPrismPhoto[]> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          return [];
+        }
+      }
+
       if (!this.token) {
         await this.login();
       }

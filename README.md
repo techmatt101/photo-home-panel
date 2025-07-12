@@ -44,9 +44,9 @@ A Progressive Web Application (PWA) that displays a photo slideshow from PhotoPr
    ```
    npm install
    ```
-3. Configure your PhotoPrism and Home Assistant URLs:
-   - Edit `src/services/photoprism-service.ts` to set your PhotoPrism URL and credentials
-   - Edit `src/services/home-assistant-service.ts` to set your Home Assistant URL and access token
+3. Configure your environment variables:
+   - Copy `.env.example` to `.env`
+   - Edit `.env` to set your PhotoPrism and Home Assistant URLs and credentials
 
 ### Development
 
@@ -75,7 +75,23 @@ The built application will be in the `dist` directory, ready to be deployed to a
 - Weather information is displayed in the bottom right
 - Calendar events and media controls appear in the side panel when available
 
-### Configuration Options
+### Authentication
+
+The application provides a user-friendly authentication system for both PhotoPrism and Home Assistant:
+
+1. **First-time Setup**: When you first open the application, you'll be prompted to enter your credentials for PhotoPrism and Home Assistant.
+
+2. **Credential Storage**: Your credentials are securely stored in your browser's local storage, so you don't need to enter them again.
+
+3. **Manual Configuration**: You can also pre-configure credentials using environment variables (see below).
+
+4. **Authentication Flow**:
+   - For PhotoPrism: Username and password authentication
+   - For Home Assistant: Either a long-lived access token or the standard OAuth flow
+
+5. **Privacy**: All credentials are stored locally on your device and are never sent to any third-party servers.
+
+### Component Configuration Options
 
 The `<photo-slideshow>` component accepts the following attributes:
 

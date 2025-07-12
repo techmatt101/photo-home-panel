@@ -12,33 +12,61 @@ import {
   WeatherEntity,
   CalendarEntity,
   MediaPlayerEntity,
-  HomeAssistantConfig
+  HomeAssistantConfig,
+  SavedAuth
 } from '../types/home-assistant.types';
+import authService from './auth-service';
 
 class HomeAssistantService {
-  private config: HomeAssistantConfig;
+  private config: HomeAssistantConfig | null = null;
   private connection: Connection | null = null;
   private entities: Record<string, any> = {};
   private entityListeners: Map<string, Set<(entity: any) => void>> = new Map();
   private connectionPromise: Promise<Connection> | null = null;
+  private authRequested: boolean = false;
 
   constructor() {
-    // Default configuration - should be loaded from user settings in a real app
-    this.config = {
-      url: 'http://homeassistant.local',
-      accessToken: undefined
-    };
+    // Configuration will be loaded from auth service
   }
 
   // Initialize the service and connect to Home Assistant
   async initialize(): Promise<boolean> {
     try {
-      await this.connect();
-      return true;
+      // Get config from auth service
+      this.config = authService.getHomeAssistantConfig();
+
+      // If no config is available, request authentication
+      if (!this.config && !this.authRequested) {
+        this.authRequested = true;
+        authService.requestHomeAssistantAuth('Please log in to Home Assistant to access your smart home.');
+        return false;
+      }
+
+      // If we have a config, try to connect
+      if (this.config) {
+        await this.connect();
+        return true;
+      }
+
+      return false;
     } catch (error) {
       console.error('Failed to initialize Home Assistant service:', error);
+
+      // If connection fails, request authentication
+      if (!this.authRequested) {
+        this.authRequested = true;
+        authService.requestHomeAssistantAuth('Authentication failed. Please check your credentials.');
+      }
+
       return false;
     }
+  }
+
+  // Reset authentication state
+  resetAuth(): void {
+    this.connection = null;
+    this.connectionPromise = null;
+    this.authRequested = false;
   }
 
   // Connect to Home Assistant WebSocket API
@@ -51,9 +79,13 @@ class HomeAssistantService {
       return this.connectionPromise;
     }
 
+    if (!this.config) {
+      throw new Error('Home Assistant configuration is not available');
+    }
+
     this.connectionPromise = (async () => {
       try {
-        // Try to load saved auth from localStorage in a real app
+        // Try to load saved auth from auth service
         let auth: Auth;
 
         if (this.config.accessToken) {
@@ -75,18 +107,23 @@ class HomeAssistantService {
           auth = await getAuth({
             hassUrl: this.config.url,
             saveTokens: (tokens: AuthData | null) => {
-              // In a real app, save tokens to localStorage
-              console.log('Saving tokens:', tokens);
+              // Save tokens to auth service
+              if (tokens) {
+                authService.saveHomeAssistantTokens(tokens as SavedAuth);
+              }
             },
             loadTokens: async () => {
-              // In a real app, load tokens from localStorage
-              return undefined;
+              // Load tokens from auth service
+              return authService.loadHomeAssistantTokens();
             }
           });
         }
 
         // Create connection
         this.connection = await createConnection({ auth });
+
+        // Reset auth requested flag on successful connection
+        this.authRequested = false;
 
         // Subscribe to entities
         subscribeEntities(this.connection, (entities) => {
@@ -145,8 +182,15 @@ class HomeAssistantService {
   }
 
   // Get weather data
-  async getWeather(entityId: string = 'weather.stafford'): Promise<WeatherEntity | null> {
+  async getWeather(entityId: string = import.meta.env.VITE_WEATHER_ENTITY_ID || 'weather.home'): Promise<WeatherEntity | null> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          return null;
+        }
+      }
+
       await this.connect();
       return this.entities[entityId] as WeatherEntity || null;
     } catch (error) {
@@ -156,13 +200,20 @@ class HomeAssistantService {
   }
 
   // Subscribe to weather updates
-  subscribeWeather(callback: (weather: WeatherEntity) => void, entityId: string = 'weather.stafford'): () => void {
+  subscribeWeather(callback: (weather: WeatherEntity) => void, entityId: string = import.meta.env.VITE_WEATHER_ENTITY_ID || 'weather.home'): () => void {
     return this.subscribeEntity<WeatherEntity>(entityId, callback);
   }
 
   // Get calendar events
   async getCalendarEvents(): Promise<CalendarEntity[]> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          return [];
+        }
+      }
+
       await this.connect();
 
       // Filter entities to find calendar entities
@@ -181,8 +232,15 @@ class HomeAssistantService {
   }
 
   // Get media player status
-  async getMediaPlayerStatus(entityId: string = 'media_player.spotify'): Promise<MediaPlayerEntity | null> {
+  async getMediaPlayerStatus(entityId: string = import.meta.env.VITE_MEDIA_PLAYER_ENTITY_ID || 'media_player.spotify'): Promise<MediaPlayerEntity | null> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          return null;
+        }
+      }
+
       await this.connect();
       return this.entities[entityId] as MediaPlayerEntity || null;
     } catch (error) {
@@ -192,13 +250,20 @@ class HomeAssistantService {
   }
 
   // Subscribe to media player updates
-  subscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity) => void, entityId: string = 'media_player.spotify'): () => void {
+  subscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity) => void, entityId: string = import.meta.env.VITE_MEDIA_PLAYER_ENTITY_ID || 'media_player.spotify'): () => void {
     return this.subscribeEntity<MediaPlayerEntity>(entityId, callback);
   }
 
   // Get TV status
-  async getTVStatus(entityId: string = 'media_player.shield'): Promise<MediaPlayerEntity | null> {
+  async getTVStatus(entityId: string = import.meta.env.VITE_TV_ENTITY_ID || 'media_player.tv'): Promise<MediaPlayerEntity | null> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          return null;
+        }
+      }
+
       await this.connect();
       return this.entities[entityId] as MediaPlayerEntity || null;
     } catch (error) {
@@ -208,13 +273,20 @@ class HomeAssistantService {
   }
 
   // Subscribe to TV updates
-  subscribeTV(callback: (tv: MediaPlayerEntity) => void, entityId: string = 'media_player.shield'): () => void {
+  subscribeTV(callback: (tv: MediaPlayerEntity) => void, entityId: string = import.meta.env.VITE_TV_ENTITY_ID || 'media_player.tv'): () => void {
     return this.subscribeEntity<MediaPlayerEntity>(entityId, callback);
   }
 
   // Control lights
   async toggleLight(entityId: string): Promise<void> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          throw new Error('Home Assistant configuration is not available');
+        }
+      }
+
       const connection = await this.connect();
       const domain = 'light';
       const service = 'toggle';
@@ -227,8 +299,15 @@ class HomeAssistantService {
   }
 
   // Start vacuum cleaner
-  async startVacuum(entityId: string = 'vacuum.robot_vacuum'): Promise<void> {
+  async startVacuum(entityId: string = import.meta.env.VITE_VACUUM_ENTITY_ID || 'vacuum.cleaner'): Promise<void> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          throw new Error('Home Assistant configuration is not available');
+        }
+      }
+
       const connection = await this.connect();
       const domain = 'vacuum';
       const service = 'start';
@@ -243,6 +322,13 @@ class HomeAssistantService {
   // Control media player
   async mediaPlayerCommand(entityId: string, command: 'play' | 'pause' | 'next' | 'previous' | 'volume_up' | 'volume_down' | 'volume_mute'): Promise<void> {
     try {
+      if (!this.config) {
+        await this.initialize();
+        if (!this.config) {
+          throw new Error('Home Assistant configuration is not available');
+        }
+      }
+
       const connection = await this.connect();
       const domain = 'media_player';
 
