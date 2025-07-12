@@ -115,18 +115,7 @@ export class RootApp extends LitElement {
         @image-changed="${this.handleImageChange}"
       >
         <!-- Info overlay with time and weather -->
-        <info-overlay .photo="${this.currentImage}">
-          <time-weather></time-weather>
-        </info-overlay>
 
-        <!-- Side panel with calendar events and media player -->
-        <side-panel ?hasContent="${this.hasCalendarEvents || this.hasMediaPlayer}">
-          <calendar-events @has-events="${this.handleCalendarEventsChange}"></calendar-events>
-          <media-player @has-media="${this.handleMediaPlayerChange}"></media-player>
-        </side-panel>
-
-        <!-- Control buttons -->
-        <control-buttons></control-buttons>
       </photo-slideshow>
     `;
   }

@@ -35,17 +35,12 @@ class PhotoPrismService {
           required: true
         },
         {
-          id: 'username',
-          label: 'Username',
-          type: 'text',
-          placeholder: 'admin',
-          required: true
-        },
-        {
-          id: 'password',
-          label: 'Password',
+          id: 'apiKey',
+          label: 'API Key',
           type: 'password',
-          required: true
+          placeholder: 'Enter your API key',
+          required: true,
+          helpText: 'The API key for authenticating with PhotoPrism'
         }
       ]
     };
@@ -90,28 +85,30 @@ class PhotoPrismService {
     }
   }
 
-  // Login to PhotoPrism API
+  // Initialize API key authentication
   private async login(): Promise<void> {
     if (!this.config) {
       throw new Error('PhotoPrism configuration is not available');
     }
 
     try {
-      const response = await axios.post(`${this.config.baseUrl}/api/v1/session`, {
-        username: this.config.username,
-        password: this.config.password
+      // With API key authentication, we don't need to make a login request
+      // Just store the API key for use in request headers
+      this.token = this.config.apiKey;
+      this.authRequested = false;
+
+      // Verify the API key by making a simple request
+      const testResponse = await axios.get(`${this.config.baseUrl}/api/v1/config`, {
+        headers: this.getHeaders()
       });
 
-      if (response.data && response.data.id) {
-        this.token = response.data.id;
-        this.authRequested = false; // Reset auth requested flag on successful login
-      } else {
-        throw new Error('Invalid response from PhotoPrism API');
+      if (!testResponse.data) {
+        throw new Error('Failed to verify API key');
       }
     } catch (error) {
-      console.error('PhotoPrism login failed:', error);
+      console.error('PhotoPrism API key verification failed:', error);
 
-      // Clear token on login failure
+      // Clear token on verification failure
       this.token = null;
 
       throw error;
@@ -121,7 +118,7 @@ class PhotoPrismService {
   // Get headers for authenticated requests
   private getHeaders() {
     return {
-      'X-Session-ID': this.token || ''
+      'Authorization': this.token ? `Bearer ${this.token}` : ''
     };
   }
 

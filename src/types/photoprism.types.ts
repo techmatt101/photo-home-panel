@@ -44,8 +44,7 @@ export interface PhotoPrismAlbum {
 // Configuration for PhotoPrism API
 export interface PhotoPrismConfig {
   baseUrl: string;
-  username: string;
-  password: string;
+  apiKey: string;
 }
 
 // Search parameters for photos
