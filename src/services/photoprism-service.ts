@@ -5,7 +5,7 @@ import {
   PhotoPrismConfig,
   PhotoSearchParams
 } from '../types/photoprism.types';
-import authService, { AuthConfig, AuthServiceRegistration, AuthFormField } from './auth-service';
+import authService, { AuthServiceRegistration } from './auth-service';
 
 class PhotoPrismService {
   private config: PhotoPrismConfig | null = null;

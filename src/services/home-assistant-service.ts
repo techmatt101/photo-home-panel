@@ -14,7 +14,7 @@ import {
   MediaPlayerEntity,
   HomeAssistantConfig
 } from '../types/home-assistant.types';
-import authService, { AuthConfig, AuthServiceRegistration, AuthFormField } from './auth-service';
+import authService, { AuthServiceRegistration } from './auth-service';
 
 class HomeAssistantService {
   private config: HomeAssistantConfig | null = null;
@@ -121,24 +121,28 @@ class HomeAssistantService {
         // Try to load saved auth from auth service
         let auth: Auth;
 
-        if (this.config.accessToken) {
+        // Create a local copy of config to ensure it's not null within this scope
+        // We've already checked this.config is not null above, so we can safely assert it's non-null
+        const config = this.config!;
+
+        if (config.accessToken) {
           // Use long-lived access token if provided
           auth = await getAuth({
-            hassUrl: this.config.url,
+            hassUrl: config.url,
             saveTokens: () => {},
             loadTokens: async () => ({
-              hassUrl: this.config.url,
+              hassUrl: config.url,
               clientId: '',
               expires: 0,
               refresh_token: '',
-              access_token: this.config.accessToken!,
+              access_token: config.accessToken || '', // Ensure it's never undefined
               expires_in: 3600
             })
           });
         } else {
           // Otherwise use the normal auth flow
           auth = await getAuth({
-            hassUrl: this.config.url,
+            hassUrl: config.url,
             saveTokens: (tokens: AuthData | null) => {
               // Save tokens to auth service
               if (tokens) {
@@ -215,7 +219,7 @@ class HomeAssistantService {
   }
 
   // Get weather data
-  async getWeather(entityId: string = import.meta.env.VITE_WEATHER_ENTITY_ID || 'weather.home'): Promise<WeatherEntity | null> {
+  async getWeather(entityId: string = 'weather.home'): Promise<WeatherEntity | null> {
     try {
       if (!this.config) {
         await this.initialize();
@@ -233,7 +237,7 @@ class HomeAssistantService {
   }
 
   // Subscribe to weather updates
-  subscribeWeather(callback: (weather: WeatherEntity) => void, entityId: string = import.meta.env.VITE_WEATHER_ENTITY_ID || 'weather.home'): () => void {
+  subscribeWeather(callback: (weather: WeatherEntity) => void, entityId: string = 'weather.home'): () => void {
     return this.subscribeEntity<WeatherEntity>(entityId, callback);
   }
 
@@ -265,7 +269,7 @@ class HomeAssistantService {
   }
 
   // Get media player status
-  async getMediaPlayerStatus(entityId: string = import.meta.env.VITE_MEDIA_PLAYER_ENTITY_ID || 'media_player.spotify'): Promise<MediaPlayerEntity | null> {
+  async getMediaPlayerStatus(entityId: string =  'media_player.spotify'): Promise<MediaPlayerEntity | null> {
     try {
       if (!this.config) {
         await this.initialize();
@@ -283,12 +287,12 @@ class HomeAssistantService {
   }
 
   // Subscribe to media player updates
-  subscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity) => void, entityId: string = import.meta.env.VITE_MEDIA_PLAYER_ENTITY_ID || 'media_player.spotify'): () => void {
+  subscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity) => void, entityId: string = 'media_player.spotify'): () => void {
     return this.subscribeEntity<MediaPlayerEntity>(entityId, callback);
   }
 
   // Get TV status
-  async getTVStatus(entityId: string = import.meta.env.VITE_TV_ENTITY_ID || 'media_player.tv'): Promise<MediaPlayerEntity | null> {
+  async getTVStatus(entityId: string = 'media_player.tv'): Promise<MediaPlayerEntity | null> {
     try {
       if (!this.config) {
         await this.initialize();
@@ -306,7 +310,7 @@ class HomeAssistantService {
   }
 
   // Subscribe to TV updates
-  subscribeTV(callback: (tv: MediaPlayerEntity) => void, entityId: string = import.meta.env.VITE_TV_ENTITY_ID || 'media_player.tv'): () => void {
+  subscribeTV(callback: (tv: MediaPlayerEntity) => void, entityId: string = 'media_player.tv'): () => void {
     return this.subscribeEntity<MediaPlayerEntity>(entityId, callback);
   }
 
@@ -332,7 +336,7 @@ class HomeAssistantService {
   }
 
   // Start vacuum cleaner
-  async startVacuum(entityId: string = import.meta.env.VITE_VACUUM_ENTITY_ID || 'vacuum.cleaner'): Promise<void> {
+  async startVacuum(entityId: string = 'vacuum.cleaner'): Promise<void> {
     try {
       if (!this.config) {
         await this.initialize();

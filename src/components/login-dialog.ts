@@ -2,8 +2,6 @@ import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import authService, { 
   AuthRequiredEventDetail, 
-  AuthSuccessEventDetail,
-  AuthFailureEventDetail,
   AuthConfig, 
   AuthFormField 
 } from '../services/auth-service';
