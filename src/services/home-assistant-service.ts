@@ -12,10 +12,9 @@ import {
   WeatherEntity,
   CalendarEntity,
   MediaPlayerEntity,
-  HomeAssistantConfig,
-  SavedAuth
+  HomeAssistantConfig
 } from '../types/home-assistant.types';
-import authService from './auth-service';
+import authService, { AuthConfig, AuthServiceRegistration, AuthFormField } from './auth-service';
 
 class HomeAssistantService {
   private config: HomeAssistantConfig | null = null;
@@ -24,21 +23,55 @@ class HomeAssistantService {
   private entityListeners: Map<string, Set<(entity: any) => void>> = new Map();
   private connectionPromise: Promise<Connection> | null = null;
   private authRequested: boolean = false;
+  private serviceType = 'homeassistant';
 
   constructor() {
-    // Configuration will be loaded from auth service
+    // Register with auth service
+    this.registerWithAuthService();
+  }
+
+  // Register this service with the auth service
+  private registerWithAuthService(): void {
+    const registration: AuthServiceRegistration = {
+      type: this.serviceType,
+      name: 'Home Assistant',
+      storageKey: 'homeassistant_auth',
+      formFields: [
+        {
+          id: 'url',
+          label: 'Home Assistant URL',
+          type: 'url',
+          placeholder: 'http://homeassistant.local',
+          required: true
+        },
+        {
+          id: 'accessToken',
+          label: 'Long-lived Access Token (optional)',
+          type: 'password',
+          placeholder: 'Enter your access token',
+          required: false,
+          helpText: 'If you don\'t provide an access token, you\'ll be redirected to the Home Assistant login page.'
+        }
+      ]
+    };
+
+    authService.registerService(registration);
   }
 
   // Initialize the service and connect to Home Assistant
   async initialize(): Promise<boolean> {
     try {
       // Get config from auth service
-      this.config = authService.getHomeAssistantConfig();
+      const authConfig = authService.getConfig(this.serviceType);
+
+      if (authConfig) {
+        this.config = authConfig as HomeAssistantConfig;
+      }
 
       // If no config is available, request authentication
       if (!this.config && !this.authRequested) {
         this.authRequested = true;
-        authService.requestHomeAssistantAuth('Please log in to Home Assistant to access your smart home.');
+        authService.requestAuth(this.serviceType, 'Please log in to Home Assistant to access your smart home.');
         return false;
       }
 
@@ -55,7 +88,7 @@ class HomeAssistantService {
       // If connection fails, request authentication
       if (!this.authRequested) {
         this.authRequested = true;
-        authService.requestHomeAssistantAuth('Authentication failed. Please check your credentials.');
+        authService.requestAuth(this.serviceType, 'Authentication failed. Please check your credentials.');
       }
 
       return false;
@@ -109,12 +142,12 @@ class HomeAssistantService {
             saveTokens: (tokens: AuthData | null) => {
               // Save tokens to auth service
               if (tokens) {
-                authService.saveHomeAssistantTokens(tokens as SavedAuth);
+                authService.updateTokens(this.serviceType, tokens);
               }
             },
             loadTokens: async () => {
               // Load tokens from auth service
-              return authService.loadHomeAssistantTokens();
+              return authService.getTokens(this.serviceType);
             }
           });
         }

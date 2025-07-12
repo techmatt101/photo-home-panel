@@ -5,7 +5,7 @@ import {
   PhotoPrismConfig,
   PhotoSearchParams
 } from '../types/photoprism.types';
-import authService from './auth-service';
+import authService, { AuthConfig, AuthServiceRegistration, AuthFormField } from './auth-service';
 
 class PhotoPrismService {
   private config: PhotoPrismConfig | null = null;
@@ -13,21 +13,60 @@ class PhotoPrismService {
   private photoCache: Map<string, PhotoPrismPhoto> = new Map();
   private albumCache: Map<string, PhotoPrismAlbum> = new Map();
   private authRequested: boolean = false;
+  private serviceType = 'photoprism';
 
   constructor() {
-    // Configuration will be loaded from auth service
+    // Register with auth service
+    this.registerWithAuthService();
+  }
+
+  // Register this service with the auth service
+  private registerWithAuthService(): void {
+    const registration: AuthServiceRegistration = {
+      type: this.serviceType,
+      name: 'PhotoPrism',
+      storageKey: 'photoprism_auth',
+      formFields: [
+        {
+          id: 'baseUrl',
+          label: 'PhotoPrism URL',
+          type: 'url',
+          placeholder: 'https://photoprism.local',
+          required: true
+        },
+        {
+          id: 'username',
+          label: 'Username',
+          type: 'text',
+          placeholder: 'admin',
+          required: true
+        },
+        {
+          id: 'password',
+          label: 'Password',
+          type: 'password',
+          required: true
+        }
+      ]
+    };
+
+    authService.registerService(registration);
   }
 
   // Initialize the service and authenticate
   async initialize(): Promise<boolean> {
     try {
       // Get config from auth service
-      this.config = authService.getPhotoPrismConfig();
+      const authConfig = authService.getConfig(this.serviceType);
+
+      if (authConfig) {
+        this.config = authConfig as PhotoPrismConfig;
+      }
 
       // If no config is available, request authentication
       if (!this.config && !this.authRequested) {
         this.authRequested = true;
-        authService.requestPhotoPrismAuth('Please log in to PhotoPrism to view your photos.');
+        authService.requestAuth(this.serviceType, 'Please log in to PhotoPrism to view your photos.');
         return false;
       }
 
@@ -44,7 +83,7 @@ class PhotoPrismService {
       // If login fails, request authentication
       if (!this.authRequested) {
         this.authRequested = true;
-        authService.requestPhotoPrismAuth('Authentication failed. Please check your credentials.');
+        authService.requestAuth(this.serviceType, 'Authentication failed. Please check your credentials.');
       }
 
       return false;

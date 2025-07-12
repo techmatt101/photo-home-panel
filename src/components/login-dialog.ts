@@ -1,8 +1,12 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { PhotoPrismConfig } from '../types/photoprism.types';
-import { HomeAssistantConfig } from '../types/home-assistant.types';
-import authService, { AuthType, AuthRequiredEventDetail } from '../services/auth-service';
+import authService, { 
+  AuthRequiredEventDetail, 
+  AuthSuccessEventDetail,
+  AuthFailureEventDetail,
+  AuthConfig, 
+  AuthFormField 
+} from '../services/auth-service';
 
 // Event names
 const EVENT_AUTH_REQUIRED = 'auth-required';
@@ -12,19 +16,12 @@ const EVENT_AUTH_FAILURE = 'auth-failure';
 @customElement('login-dialog')
 export class LoginDialog extends LitElement {
   @state() private open = false;
-  @state() private authType: AuthType = 'photoprism';
+  @state() private authType: string = '';
   @state() private message = '';
   @state() private loading = false;
   @state() private error = '';
-
-  // PhotoPrism form fields
-  @state() private ppUrl = '';
-  @state() private ppUsername = '';
-  @state() private ppPassword = '';
-
-  // Home Assistant form fields
-  @state() private haUrl = '';
-  @state() private haToken = '';
+  @state() private formFields: AuthFormField[] = [];
+  @state() private formValues: Record<string, string> = {};
 
   static styles = css`
     :host {
@@ -217,17 +214,24 @@ export class LoginDialog extends LitElement {
     this.message = event.detail.message || '';
     this.error = '';
     this.loading = false;
-    
-    // Initialize form fields based on auth type
-    if (this.authType === 'photoprism') {
-      const config = authService.getPhotoPrismConfig();
-      this.ppUrl = config?.baseUrl || '';
-      this.ppUsername = config?.username || '';
-      this.ppPassword = config?.password || '';
-    } else {
-      const config = authService.getHomeAssistantConfig();
-      this.haUrl = config?.url || '';
-      this.haToken = config?.accessToken || '';
+
+    // Get the registered service
+    const service = authService.getRegisteredService(this.authType);
+    if (!service) {
+      console.error(`Service ${this.authType} is not registered`);
+      return;
+    }
+
+    // Get form fields for this service
+    this.formFields = authService.getFormFields(this.authType);
+
+    // Initialize form values from saved config
+    const config = authService.getConfig(this.authType) || {};
+    this.formValues = {};
+
+    // Initialize form values
+    for (const field of this.formFields) {
+      this.formValues[field.id] = config[field.id] || '';
     }
 
     this.open = true;
@@ -238,33 +242,27 @@ export class LoginDialog extends LitElement {
     this.loading = true;
     this.error = '';
 
-    if (this.authType === 'photoprism') {
-      this.submitPhotoPrism();
-    } else {
-      this.submitHomeAssistant();
-    }
+    this.submitForm();
   }
 
-  private async submitPhotoPrism() {
+  private async submitForm() {
     try {
-      // Validate form
-      if (!this.ppUrl || !this.ppUsername || !this.ppPassword) {
-        throw new Error('Please fill in all fields');
+      // Validate required fields
+      for (const field of this.formFields) {
+        if (field.required && !this.formValues[field.id]) {
+          throw new Error(`Please fill in the ${field.label} field`);
+        }
       }
 
-      // Create config object
-      const config: PhotoPrismConfig = {
-        baseUrl: this.ppUrl,
-        username: this.ppUsername,
-        password: this.ppPassword
-      };
+      // Create config object from form values
+      const config: AuthConfig = { ...this.formValues };
 
       // Save to auth service
-      authService.setPhotoPrismConfig(config);
+      authService.setAuth(this.authType, config);
 
       // Dispatch success event
       window.dispatchEvent(new CustomEvent(EVENT_AUTH_SUCCESS, { 
-        detail: { type: 'photoprism' } 
+        detail: { type: this.authType } 
       }));
 
       // Close dialog
@@ -276,44 +274,7 @@ export class LoginDialog extends LitElement {
       // Dispatch failure event
       window.dispatchEvent(new CustomEvent(EVENT_AUTH_FAILURE, { 
         detail: { 
-          type: 'photoprism',
-          error: this.error
-        } 
-      }));
-    }
-  }
-
-  private async submitHomeAssistant() {
-    try {
-      // Validate form
-      if (!this.haUrl) {
-        throw new Error('Please enter the Home Assistant URL');
-      }
-
-      // Create config object
-      const config: HomeAssistantConfig = {
-        url: this.haUrl,
-        accessToken: this.haToken || undefined
-      };
-
-      // Save to auth service
-      authService.setHomeAssistantConfig(config);
-
-      // Dispatch success event
-      window.dispatchEvent(new CustomEvent(EVENT_AUTH_SUCCESS, { 
-        detail: { type: 'homeassistant' } 
-      }));
-
-      // Close dialog
-      this.open = false;
-    } catch (error) {
-      this.error = error instanceof Error ? error.message : 'An unknown error occurred';
-      this.loading = false;
-
-      // Dispatch failure event
-      window.dispatchEvent(new CustomEvent(EVENT_AUTH_FAILURE, { 
-        detail: { 
-          type: 'homeassistant',
+          type: this.authType,
           error: this.error
         } 
       }));
@@ -333,98 +294,50 @@ export class LoginDialog extends LitElement {
     this.open = false;
   }
 
-  private renderPhotoPrismForm() {
+  private renderFormField(field: AuthFormField) {
     return html`
       <div class="form-group">
-        <label for="ppUrl">PhotoPrism URL</label>
+        <label for="${field.id}">${field.label}</label>
         <input 
-          type="url" 
-          id="ppUrl" 
-          .value=${this.ppUrl}
-          @input=${(e: InputEvent) => this.ppUrl = (e.target as HTMLInputElement).value}
-          placeholder="https://photoprism.local"
+          type="${field.type}" 
+          id="${field.id}" 
+          .value=${this.formValues[field.id] || ''}
+          @input=${(e: InputEvent) => this.formValues[field.id] = (e.target as HTMLInputElement).value}
+          placeholder="${field.placeholder || ''}"
           ?disabled=${this.loading}
-          required
+          ?required=${field.required}
         >
-      </div>
-      <div class="form-group">
-        <label for="ppUsername">Username</label>
-        <input 
-          type="text" 
-          id="ppUsername" 
-          .value=${this.ppUsername}
-          @input=${(e: InputEvent) => this.ppUsername = (e.target as HTMLInputElement).value}
-          placeholder="admin"
-          ?disabled=${this.loading}
-          required
-        >
-      </div>
-      <div class="form-group">
-        <label for="ppPassword">Password</label>
-        <input 
-          type="password" 
-          id="ppPassword" 
-          .value=${this.ppPassword}
-          @input=${(e: InputEvent) => this.ppPassword = (e.target as HTMLInputElement).value}
-          ?disabled=${this.loading}
-          required
-        >
+        ${field.helpText ? html`<p>${field.helpText}</p>` : ''}
       </div>
     `;
   }
 
-  private renderHomeAssistantForm() {
+  private renderForm() {
     return html`
-      <div class="form-group">
-        <label for="haUrl">Home Assistant URL</label>
-        <input 
-          type="url" 
-          id="haUrl" 
-          .value=${this.haUrl}
-          @input=${(e: InputEvent) => this.haUrl = (e.target as HTMLInputElement).value}
-          placeholder="http://homeassistant.local"
-          ?disabled=${this.loading}
-          required
-        >
-      </div>
-      <div class="form-group">
-        <label for="haToken">Long-lived Access Token (optional)</label>
-        <input 
-          type="password" 
-          id="haToken" 
-          .value=${this.haToken}
-          @input=${(e: InputEvent) => this.haToken = (e.target as HTMLInputElement).value}
-          placeholder="Enter your access token"
-          ?disabled=${this.loading}
-        >
-      </div>
-      <p>
-        If you don't provide an access token, you'll be redirected to the Home Assistant login page.
-      </p>
+      ${this.formFields.map(field => this.renderFormField(field))}
     `;
   }
 
   render() {
+    const serviceName = this.authType ? authService.getServiceName(this.authType) : '';
+
     return html`
       <div class="overlay ${this.open ? 'open' : ''}">
         <div class="dialog">
           <div class="dialog-header">
             <h2 class="dialog-title">
-              ${this.authType === 'photoprism' ? 'PhotoPrism Login' : 'Home Assistant Login'}
+              ${serviceName} Login
             </h2>
             ${this.message ? html`<p class="dialog-message">${this.message}</p>` : ''}
           </div>
-          
+
           <form @submit=${this.handleSubmit}>
             <div class="dialog-content">
-              ${this.authType === 'photoprism' 
-                ? this.renderPhotoPrismForm() 
-                : this.renderHomeAssistantForm()
-              }
-              
+              ${this.renderForm()}
+
               ${this.error ? html`<div class="error-message">${this.error}</div>` : ''}
             </div>
-            
+
             <div class="dialog-footer">
               <button 
                 type="button" 

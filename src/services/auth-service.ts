@@ -1,157 +1,170 @@
-import { PhotoPrismConfig } from '../types/photoprism.types';
-import { HomeAssistantConfig, SavedAuth } from '../types/home-assistant.types';
-
-// Storage keys
-const STORAGE_KEY_PHOTOPRISM = 'photoprism_auth';
-const STORAGE_KEY_HOMEASSISTANT = 'homeassistant_auth';
-
 // Event names
 const EVENT_AUTH_REQUIRED = 'auth-required';
 const EVENT_AUTH_SUCCESS = 'auth-success';
 const EVENT_AUTH_FAILURE = 'auth-failure';
 
-// Auth types
-export type AuthType = 'photoprism' | 'homeassistant';
+// Generic auth interfaces
+export interface AuthConfig {
+  [key: string]: any;
+}
+
+export interface AuthData {
+  config: AuthConfig;
+  tokens?: any;
+}
+
+// Service registration interface
+export interface AuthServiceRegistration {
+  type: string;
+  name: string;
+  storageKey: string;
+  formFields: AuthFormField[];
+}
+
+// Form field interface for login dialog
+export interface AuthFormField {
+  id: string;
+  label: string;
+  type: 'text' | 'password' | 'url';
+  placeholder?: string;
+  required: boolean;
+  helpText?: string;
+}
 
 // Auth required event detail
 export interface AuthRequiredEventDetail {
-  type: AuthType;
+  type: string;
   message?: string;
 }
 
 // Auth success event detail
 export interface AuthSuccessEventDetail {
-  type: AuthType;
+  type: string;
 }
 
 // Auth failure event detail
 export interface AuthFailureEventDetail {
-  type: AuthType;
+  type: string;
   error: string;
 }
 
 class AuthService {
-  private photoPrismConfig: PhotoPrismConfig | null = null;
-  private homeAssistantConfig: HomeAssistantConfig | null = null;
-  private homeAssistantAuth: SavedAuth | null = null;
+  private registeredServices: Map<string, AuthServiceRegistration> = new Map();
+  private authData: Map<string, AuthData> = new Map();
   private authPromptActive = false;
 
   constructor() {
-    // Load saved credentials from localStorage on initialization
-    this.loadSavedCredentials();
-
     // Listen for auth events
     window.addEventListener(EVENT_AUTH_REQUIRED, this.handleAuthRequired.bind(this) as EventListener);
     window.addEventListener(EVENT_AUTH_SUCCESS, this.handleAuthSuccess.bind(this) as EventListener);
     window.addEventListener(EVENT_AUTH_FAILURE, this.handleAuthFailure.bind(this) as EventListener);
   }
 
-  // Load saved credentials from localStorage
-  private loadSavedCredentials(): void {
+  // Register a service with the auth service
+  registerService(registration: AuthServiceRegistration): void {
+    this.registeredServices.set(registration.type, registration);
+
+    // Load saved credentials for this service
+    this.loadSavedCredentials(registration.type);
+  }
+
+  // Get a registered service
+  getRegisteredService(type: string): AuthServiceRegistration | undefined {
+    return this.registeredServices.get(type);
+  }
+
+  // Get all registered services
+  getRegisteredServices(): AuthServiceRegistration[] {
+    return Array.from(this.registeredServices.values());
+  }
+
+  // Load saved credentials from localStorage for a specific service
+  private loadSavedCredentials(type: string): void {
     try {
-      // Load PhotoPrism credentials
-      const photoPrismAuth = localStorage.getItem(STORAGE_KEY_PHOTOPRISM);
-      if (photoPrismAuth) {
-        this.photoPrismConfig = JSON.parse(photoPrismAuth);
+      const registration = this.registeredServices.get(type);
+      if (!registration) {
+        console.error(`Service ${type} is not registered`);
+        return;
       }
 
-      // Load Home Assistant credentials
-      const homeAssistantAuth = localStorage.getItem(STORAGE_KEY_HOMEASSISTANT);
-      if (homeAssistantAuth) {
-        const parsed = JSON.parse(homeAssistantAuth);
-        if (parsed.config) {
-          this.homeAssistantConfig = parsed.config;
-        }
-        if (parsed.auth) {
-          this.homeAssistantAuth = parsed.auth;
-        }
+      const savedAuth = localStorage.getItem(registration.storageKey);
+      if (savedAuth) {
+        this.authData.set(type, JSON.parse(savedAuth));
       }
     } catch (error) {
-      console.error('Failed to load saved credentials:', error);
+      console.error(`Failed to load saved credentials for ${type}:`, error);
     }
   }
 
-  // Save PhotoPrism credentials to localStorage
-  private savePhotoPrismCredentials(config: PhotoPrismConfig): void {
+  // Save credentials to localStorage
+  private saveCredentials(type: string, data: AuthData): void {
     try {
-      localStorage.setItem(STORAGE_KEY_PHOTOPRISM, JSON.stringify(config));
+      const registration = this.registeredServices.get(type);
+      if (!registration) {
+        console.error(`Service ${type} is not registered`);
+        return;
+      }
+
+      localStorage.setItem(registration.storageKey, JSON.stringify(data));
     } catch (error) {
-      console.error('Failed to save PhotoPrism credentials:', error);
+      console.error(`Failed to save credentials for ${type}:`, error);
     }
   }
 
-  // Save Home Assistant credentials to localStorage
-  private saveHomeAssistantCredentials(config: HomeAssistantConfig, auth?: SavedAuth): void {
-    try {
-      const data = { config, auth };
-      localStorage.setItem(STORAGE_KEY_HOMEASSISTANT, JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to save Home Assistant credentials:', error);
+  // Get configuration for a service
+  getConfig(type: string): AuthConfig | null {
+    const data = this.authData.get(type);
+    return data?.config || null;
+  }
+
+  // Get tokens for a service
+  getTokens(type: string): any | null {
+    const data = this.authData.get(type);
+    return data?.tokens || null;
+  }
+
+  // Set configuration and tokens for a service
+  setAuth(type: string, config: AuthConfig, tokens?: any): void {
+    const data: AuthData = { config };
+    if (tokens) {
+      data.tokens = tokens;
+    }
+
+    this.authData.set(type, data);
+    this.saveCredentials(type, data);
+  }
+
+  // Update tokens for a service
+  updateTokens(type: string, tokens: any): void {
+    const data = this.authData.get(type);
+    if (data && data.config) {
+      data.tokens = tokens;
+      this.saveCredentials(type, data);
     }
   }
 
-  // Get PhotoPrism configuration
-  getPhotoPrismConfig(): PhotoPrismConfig | null {
-    return this.photoPrismConfig;
-  }
-
-  // Get Home Assistant configuration
-  getHomeAssistantConfig(): HomeAssistantConfig | null {
-    return this.homeAssistantConfig;
-  }
-
-  // Get Home Assistant auth
-  getHomeAssistantAuth(): SavedAuth | null {
-    return this.homeAssistantAuth;
-  }
-
-  // Set PhotoPrism configuration
-  setPhotoPrismConfig(config: PhotoPrismConfig): void {
-    this.photoPrismConfig = config;
-    this.savePhotoPrismCredentials(config);
-  }
-
-  // Set Home Assistant configuration
-  setHomeAssistantConfig(config: HomeAssistantConfig, auth?: SavedAuth): void {
-    this.homeAssistantConfig = config;
-    if (auth) {
-      this.homeAssistantAuth = auth;
+  // Clear credentials for a service
+  clearCredentials(type: string): void {
+    const registration = this.registeredServices.get(type);
+    if (registration) {
+      this.authData.delete(type);
+      localStorage.removeItem(registration.storageKey);
     }
-    this.saveHomeAssistantCredentials(config, auth);
   }
 
-  // Clear PhotoPrism credentials
-  clearPhotoPrismCredentials(): void {
-    this.photoPrismConfig = null;
-    localStorage.removeItem(STORAGE_KEY_PHOTOPRISM);
-  }
-
-  // Clear Home Assistant credentials
-  clearHomeAssistantCredentials(): void {
-    this.homeAssistantConfig = null;
-    this.homeAssistantAuth = null;
-    localStorage.removeItem(STORAGE_KEY_HOMEASSISTANT);
-  }
-
-  // Request authentication for PhotoPrism
-  requestPhotoPrismAuth(message?: string): void {
+  // Request authentication for a service
+  requestAuth(type: string, message?: string): void {
     if (this.authPromptActive) return;
-    
+
+    const registration = this.registeredServices.get(type);
+    if (!registration) {
+      console.error(`Service ${type} is not registered`);
+      return;
+    }
+
     this.authPromptActive = true;
     const detail: AuthRequiredEventDetail = {
-      type: 'photoprism',
-      message
-    };
-    window.dispatchEvent(new CustomEvent(EVENT_AUTH_REQUIRED, { detail }));
-  }
-
-  // Request authentication for Home Assistant
-  requestHomeAssistantAuth(message?: string): void {
-    if (this.authPromptActive) return;
-    
-    this.authPromptActive = true;
-    const detail: AuthRequiredEventDetail = {
-      type: 'homeassistant',
+      type,
       message
     };
     window.dispatchEvent(new CustomEvent(EVENT_AUTH_REQUIRED, { detail }));
@@ -175,17 +188,24 @@ class AuthService {
     console.error(`Authentication failed for ${event.detail.type}: ${event.detail.error}`);
   }
 
-  // Save Home Assistant tokens
-  saveHomeAssistantTokens(tokens: SavedAuth | null): void {
-    if (tokens && this.homeAssistantConfig) {
-      this.homeAssistantAuth = tokens;
-      this.saveHomeAssistantCredentials(this.homeAssistantConfig, tokens);
+  // Get form fields for a service
+  getFormFields(type: string): AuthFormField[] {
+    const registration = this.registeredServices.get(type);
+    if (!registration) {
+      console.error(`Service ${type} is not registered`);
+      return [];
     }
+    return registration.formFields;
   }
 
-  // Load Home Assistant tokens
-  loadHomeAssistantTokens(): SavedAuth | undefined {
-    return this.homeAssistantAuth || undefined;
+  // Get service name
+  getServiceName(type: string): string {
+    const registration = this.registeredServices.get(type);
+    if (!registration) {
+      console.error(`Service ${type} is not registered`);
+      return type;
+    }
+    return registration.name;
   }
 }
 
