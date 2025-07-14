@@ -69,6 +69,24 @@ export class PhotoSlideshow extends LitElement {
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
+        /* Photo info */
+        .photo-info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            z-index: 3;
+            font-size: 14px;
+            max-width: 80%;
+        }
+
+        .photo-info p {
+            margin: 5px 0;
+        }
+
         /* Navigation buttons */
 
         .nav-buttons {
@@ -117,17 +135,19 @@ export class PhotoSlideshow extends LitElement {
     @state() private isLoading = true;
     @state() private imageUrl: string | null = null;
     @state() private nextImageUrl: string | null = null;
+    @state() private photoLocation: string | null = null;
+    @state() private photoDate: string | null = null;
 
     private transitioning = false;
 
     private hammer: HammerManager | null = null;
     private slideshowService: SlideshowService = new SlideshowService();
 
-    connectedCallback() {
+    async connectedCallback() {
         super.connectedCallback();
 
         try {
-            this.slideshowService.initialize();
+            await this.slideshowService.initialize();
 
             this.hammer = new Hammer(this);
             this.hammer.on('swipeleft', () => {
@@ -137,11 +157,25 @@ export class PhotoSlideshow extends LitElement {
                 this.previousSlide();
             });
 
-            this.imageUrl = this.slideshowService.getCurrentImageUrl();
+            this.updatePhotoInfo();
         } catch (error) {
             console.error('Error initializing services:', error);
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    // Update photo information from the service
+    private updatePhotoInfo() {
+        const photoInfo = this.slideshowService.getCurrentPhotoInfo();
+        if (photoInfo) {
+            this.imageUrl = photoInfo.url;
+            this.photoLocation = photoInfo.location;
+            this.photoDate = photoInfo.date;
+        } else {
+            this.imageUrl = this.slideshowService.getCurrentImageUrl();
+            this.photoLocation = null;
+            this.photoDate = null;
         }
     }
 
@@ -167,8 +201,8 @@ export class PhotoSlideshow extends LitElement {
         if (this.transitioning) return;
         this.transitioning = true;
 
-        await callback()
-        this.imageUrl = this.slideshowService.getCurrentImageUrl();
+        await callback();
+        this.updatePhotoInfo();
 
         this.transitioning = false;
     }
@@ -181,13 +215,13 @@ export class PhotoSlideshow extends LitElement {
                     <div class="image-container current">
                         <div class="image-background" style="background-image: url(${this.imageUrl})"></div>
                         <img class="image" src="${this.imageUrl}" alt="Current photo"/>
-                    </div>
-                ` : ''}
 
-                ${this.nextImageUrl ? html`
-                    <div class="image-container next">
-                        <div class="image-background" style="background-image: url(${this.nextImageUrl})"></div>
-                        <img class="image" src="${this.nextImageUrl}" alt="Next photo"/>
+                        ${(this.photoLocation || this.photoDate) ? html`
+                            <div class="photo-info">
+                                ${this.photoLocation ? html`<p>📍 ${this.photoLocation}</p>` : ''}
+                                ${this.photoDate ? html`<p>📅 ${this.photoDate}</p>` : ''}
+                            </div>
+                        ` : ''}
                     </div>
                 ` : ''}
 

@@ -1,16 +1,16 @@
 import photoPrismService from './photoprism-service';
 import {PhotoPrismPhoto} from '../types/photoprism.types';
 
-export class SlideshowService {
-    private cachedPhotos: PhotoPrismPhoto[] = [];
-    private currentImage: PhotoPrismPhoto | null = null;
-    private nextImageObj: PhotoPrismPhoto | null = null;
-    private previousImageObj: PhotoPrismPhoto | null = null;
-    private orientation: 'landscape' | 'portrait' = 'landscape';
-    private albumUid: string = '';
-    private cacheSize: number = 10;
-    private transitioning: boolean = false;
+// Simple interface for photo display information
+interface PhotoDisplayInfo {
+    url: string;
+    location: string;
+    date: string;
+}
 
+export class SlideshowService {
+    private currentImage: PhotoPrismPhoto | null = null;
+    private orientation: 'landscape' | 'portrait' = 'landscape';
     private autoPlayTimer: number | null = null;
     private autoPlay: boolean = false;
     private slideDuration: number = 10000; // 10 seconds default
@@ -23,7 +23,7 @@ export class SlideshowService {
         });
 
         await photoPrismService.initialize();
-        await this.loadPhotos();
+        await this.loadRandomPhoto();
     }
 
     // Get the current orientation
@@ -36,143 +36,31 @@ export class SlideshowService {
         return this.currentImage;
     }
 
-    // Get the next image
-    getNextImage(): PhotoPrismPhoto | null {
-        return this.nextImageObj;
-    }
-
-    // Get the previous image
-    getPreviousImage(): PhotoPrismPhoto | null {
-        return this.previousImageObj;
-    }
-
     // Get the URL for the current image
     getCurrentImageUrl(): string | null {
         return this.currentImage ? photoPrismService.getPhotoUrl(this.currentImage.Hash) : null;
     }
 
-    // Get the URL for the next image
-    getNextImageUrl(): string | null {
-        return this.nextImageObj ? photoPrismService.getPhotoUrl(this.nextImageObj.Hash) : null;
-    }
+    // Get display information for the current photo
+    getCurrentPhotoInfo(): PhotoDisplayInfo | null {
+        if (!this.currentImage) return null;
 
-    // Get the URL for the previous image
-    getPreviousImageUrl(): string | null {
-        return this.previousImageObj ? photoPrismService.getPhotoUrl(this.previousImageObj.Hash) : null;
+        return {
+            url: photoPrismService.getPhotoUrl(this.currentImage.Hash),
+            location: this.getPhotoLocation(this.currentImage),
+            date: this.getPhotoDate(this.currentImage)
+        };
     }
 
     // Move to the next image
     async nextImage(): Promise<PhotoPrismPhoto | null> {
-        if (this.transitioning) return this.currentImage;
-
-        this.transitioning = true;
-
-        // If we're using the PhotoPrism service
-        if (this.cachedPhotos.length > 0) {
-            // Find the index of the current image in the cache
-            const currentIndex = this.cachedPhotos.findIndex(photo => photo.UID === this.currentImage?.UID);
-
-            if (currentIndex !== -1) {
-                // Calculate the next index (with wrap-around)
-                const nextIndex = (currentIndex + 1) % this.cachedPhotos.length;
-
-                // Update the previous, current, and next images
-                this.previousImageObj = this.currentImage;
-                this.currentImage = this.nextImageObj;
-
-                // If we're near the end of our cache, load more photos
-                if (nextIndex >= this.cachedPhotos.length - 2) {
-                    try {
-                        const newPhotos = await photoPrismService.getRandomPhotos(
-                            Math.max(5, this.cacheSize - this.cachedPhotos.length),
-                            this.orientation
-                        );
-
-                        // Add new photos to the cache, avoiding duplicates
-                        for (const photo of newPhotos) {
-                            if (!this.cachedPhotos.some(p => p.UID === photo.UID)) {
-                                this.cachedPhotos.push(photo);
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Failed to load more photos:', error);
-                    }
-                }
-
-                // Set the next image
-                this.nextImageObj = this.cachedPhotos[nextIndex];
-            }
-        } else {
-            // Fallback to placeholder behavior
-            const tempImage = this.nextImageObj;
-            this.previousImageObj = this.currentImage;
-            this.currentImage = tempImage;
-            this.nextImageObj = {...this.currentImage!, UID: `placeholder-${Date.now()}`};
-        }
-
-        // After a short delay, mark as not transitioning
-        setTimeout(() => {
-            this.transitioning = false;
-        }, 100);
-
+        await this.loadRandomPhoto();
         return this.currentImage;
     }
 
-    // Move to the previous image
+    // Move to the previous image (same as next in simplified version)
     async previousImage(): Promise<PhotoPrismPhoto | null> {
-        if (this.transitioning) return this.currentImage;
-
-        this.transitioning = true;
-
-        // If we're using the PhotoPrism service
-        if (this.cachedPhotos.length > 0) {
-            // Find the index of the current image in the cache
-            const currentIndex = this.cachedPhotos.findIndex(photo => photo.UID === this.currentImage?.UID);
-
-            if (currentIndex !== -1) {
-                // Calculate the previous index (with wrap-around)
-                const prevIndex = (currentIndex - 1 + this.cachedPhotos.length) % this.cachedPhotos.length;
-
-                // Update the previous, current, and next images
-                this.nextImageObj = this.currentImage;
-                this.currentImage = this.previousImageObj;
-
-                // If we're near the beginning of our cache, load more photos
-                if (prevIndex <= 1) {
-                    try {
-                        const newPhotos = await photoPrismService.getRandomPhotos(
-                            Math.max(5, this.cacheSize - this.cachedPhotos.length),
-                            this.orientation
-                        );
-
-                        // Add new photos to the beginning of the cache, avoiding duplicates
-                        for (const photo of newPhotos) {
-                            if (!this.cachedPhotos.some(p => p.UID === photo.UID)) {
-                                this.cachedPhotos.unshift(photo);
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Failed to load more photos:', error);
-                    }
-                }
-
-                // Set the previous image
-                this.previousImageObj = this.cachedPhotos[prevIndex];
-            }
-        } else {
-            // Fallback to placeholder behavior
-            const tempImage = this.previousImageObj;
-            this.nextImageObj = this.currentImage;
-            this.currentImage = tempImage;
-            this.previousImageObj = {...this.currentImage!, UID: `placeholder-${Date.now()}`};
-        }
-
-        // After a short delay, mark as not transitioning
-        setTimeout(() => {
-            this.transitioning = false;
-        }, 100);
-
-        return this.currentImage;
+        return this.nextImage();
     }
 
     // Detect device orientation
@@ -181,37 +69,46 @@ export class SlideshowService {
         this.orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
     }
 
-    // Load photos from PhotoPrism
-    private async loadPhotos() {
+    // Get a random photo
+    private async loadRandomPhoto() {
         try {
-            // Determine how many photos to load
-            const photosToLoad = Math.max(this.cacheSize, 3); // At least 3 photos (current, next, previous)
-
-            let photos: PhotoPrismPhoto[];
-
-            // If an album is specified, load photos from that album
-            if (this.albumUid) {
-                photos = await photoPrismService.getAlbumPhotos(this.albumUid);
-            } else {
-                // Otherwise, get random photos with preference for the current orientation
-                photos = await photoPrismService.getRandomPhotos(photosToLoad, this.orientation);
-            }
+            const photos = await this.getRandomPhoto();
 
             if (photos.length === 0) {
                 console.error('No photos found');
                 return;
             }
 
-            // Store the photos in the cache
-            this.cachedPhotos = photos;
-
-            // Set the current, next, and previous photos
             this.currentImage = photos[0];
-            this.nextImageObj = photos.length > 1 ? photos[1] : photos[0];
-            this.previousImageObj = photos.length > 2 ? photos[2] : photos[0];
         } catch (error) {
-            console.error('Error loading photos:', error);
+            console.error('Error loading photo:', error);
         }
+    }
+
+    // Get a random photo from the service
+    private async getRandomPhoto(): Promise<PhotoPrismPhoto[]> {
+        return await photoPrismService.getRandomPhotos(1, this.orientation);
+    }
+
+    // Extract location information from a photo
+    private getPhotoLocation(photo: PhotoPrismPhoto): string {
+        if (photo.PlaceID) {
+            return photo.PlaceID;
+        } else if (photo.Path) {
+            // Extract location from path if available
+            const pathParts = photo.Path.split('/');
+            return pathParts[pathParts.length - 2] || 'Unknown location';
+        }
+        return 'Unknown location';
+    }
+
+    // Format the photo date
+    private getPhotoDate(photo: PhotoPrismPhoto): string {
+        if (photo.TakenAtLocal) {
+            const date = new Date(photo.TakenAtLocal);
+            return date.toLocaleDateString();
+        }
+        return 'Unknown date';
     }
 
     // Start auto-play
