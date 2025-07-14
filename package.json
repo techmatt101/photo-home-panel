@@ -10,19 +10,21 @@
         "lint": "eslint src/**/*.ts"
     },
     "dependencies": {
-        "lit": "^2.8.0",
+        "@types/hammerjs": "^2.0.46",
+        "axios": "^1.6.0",
+        "hammerjs": "^2.0.8",
         "home-assistant-js-websocket": "^8.2.0",
-        "workbox-window": "^7.0.0",
-        "axios": "^1.6.0"
+        "lit": "^2.8.0",
+        "workbox-window": "^7.0.0"
     },
     "devDependencies": {
-        "typescript": "^5.5.3",
-        "vite": "^4.5.0",
-        "vite-plugin-pwa": "^0.16.5",
+        "@typescript-eslint/eslint-plugin": "^6.10.0",
+        "@typescript-eslint/parser": "^6.10.0",
         "@vitejs/plugin-legacy": "^4.1.1",
         "eslint": "^8.53.0",
-        "@typescript-eslint/eslint-plugin": "^6.10.0",
-        "@typescript-eslint/parser": "^6.10.0"
+        "typescript": "^5.5.3",
+        "vite": "^4.5.0",
+        "vite-plugin-pwa": "^0.16.5"
     },
     "private": true
 }

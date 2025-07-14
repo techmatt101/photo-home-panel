@@ -8,7 +8,6 @@ import './time-weather';
 import './media-player';
 import './calendar-events';
 import './control-buttons';
-import './side-panel';
 import './login-dialog';
 
 @customElement('root-app')

@@ -1,7 +1,7 @@
 import photoPrismService from './photoprism-service';
 import {PhotoPrismPhoto} from '../types/photoprism.types';
 
-class SlideshowService {
+export class SlideshowService {
     private cachedPhotos: PhotoPrismPhoto[] = [];
     private currentImage: PhotoPrismPhoto | null = null;
     private nextImageObj: PhotoPrismPhoto | null = null;
@@ -11,47 +11,19 @@ class SlideshowService {
     private cacheSize: number = 10;
     private transitioning: boolean = false;
 
-    // Auto-play properties
     private autoPlayTimer: number | null = null;
-    private autoPlay: boolean = true;
+    private autoPlay: boolean = false;
     private slideDuration: number = 10000; // 10 seconds default
 
-    // Initialize the slideshow service
-    async initialize(albumUid: string = '', cacheSize: number = 10, autoPlay: boolean = true, slideDuration: number = 10000): Promise<boolean> {
-        this.albumUid = albumUid;
-        this.cacheSize = cacheSize;
-        this.autoPlay = autoPlay;
-        this.slideDuration = slideDuration;
+    async initialize(): Promise<void> {
         this.detectOrientation();
 
-        // Set up orientation change listener
         window.addEventListener('resize', () => {
             this.detectOrientation();
         });
 
-        // Start auto-play if enabled
-        if (this.autoPlay) {
-            this.startAutoPlay();
-        }
-
-        try {
-            // Initialize the PhotoPrism service
-            const initialized = await photoPrismService.initialize();
-
-            if (initialized) {
-                // Load initial photos
-                await this.loadPhotos();
-                return true;
-            } else {
-                console.error('Failed to initialize PhotoPrism service');
-                this.usePlaceholderImages();
-                return false;
-            }
-        } catch (error) {
-            console.error('Error initializing PhotoPrism service:', error);
-            this.usePlaceholderImages();
-            return false;
-        }
+        await photoPrismService.initialize();
+        await this.loadPhotos();
     }
 
     // Get the current orientation
@@ -90,7 +62,7 @@ class SlideshowService {
     }
 
     // Move to the next image
-    public async nextImage(): Promise<PhotoPrismPhoto | null> {
+    async nextImage(): Promise<PhotoPrismPhoto | null> {
         if (this.transitioning) return this.currentImage;
 
         this.transitioning = true;
@@ -147,7 +119,7 @@ class SlideshowService {
     }
 
     // Move to the previous image
-    public async previousImage(): Promise<PhotoPrismPhoto | null> {
+    async previousImage(): Promise<PhotoPrismPhoto | null> {
         if (this.transitioning) return this.currentImage;
 
         this.transitioning = true;
@@ -209,40 +181,6 @@ class SlideshowService {
         this.orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
     }
 
-    // Use placeholder images if PhotoPrism is not available
-    private usePlaceholderImages() {
-        // Mock metadata
-        this.currentImage = {
-            UID: 'placeholder',
-            Title: 'Sample Photo',
-            Description: 'Placeholder image',
-            TakenAt: new Date().toISOString(),
-            TakenAtLocal: new Date().toISOString(),
-            TakenSrc: 'local',
-            TimeZone: 'UTC',
-            Path: '',
-            Name: 'placeholder.jpg',
-            OriginalName: 'placeholder.jpg',
-            Type: 'image',
-            Favorite: false,
-            Private: false,
-            Lat: 52.8056,  // Stafford, UK latitude
-            Lng: -2.1163,  // Stafford, UK longitude
-            Altitude: 0,
-            Width: 1200,
-            Height: 800,
-            Hash: '',
-            StackUID: '',
-            PlaceID: '',
-            PlaceSrc: '',
-            CellID: '',
-            CellAccuracy: 0
-        } as PhotoPrismPhoto;
-
-        this.nextImageObj = {...this.currentImage, UID: 'placeholder-next'};
-        this.previousImageObj = {...this.currentImage, UID: 'placeholder-prev'};
-    }
-
     // Load photos from PhotoPrism
     private async loadPhotos() {
         try {
@@ -261,7 +199,6 @@ class SlideshowService {
 
             if (photos.length === 0) {
                 console.error('No photos found');
-                this.usePlaceholderImages();
                 return;
             }
 
@@ -274,7 +211,6 @@ class SlideshowService {
             this.previousImageObj = photos.length > 2 ? photos[2] : photos[0];
         } catch (error) {
             console.error('Error loading photos:', error);
-            this.usePlaceholderImages();
         }
     }
 
@@ -340,9 +276,3 @@ class SlideshowService {
         this.stopAutoPlay();
     }
 }
-
-// Create a singleton instance
-export const slideshowService = new SlideshowService();
-
-// Export the service
-export default slideshowService;
