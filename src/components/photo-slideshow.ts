@@ -137,6 +137,9 @@ export class PhotoSlideshow extends LitElement {
     @state() private nextImageUrl: string | null = null;
     @state() private photoLocation: string | null = null;
     @state() private photoDate: string | null = null;
+    @state() private nextPhotoLocation: string | null = null;
+    @state() private nextPhotoDate: string | null = null;
+    @state() private isTransitioning = false;
 
     private transitioning = false;
 
@@ -147,8 +150,11 @@ export class PhotoSlideshow extends LitElement {
         super.connectedCallback();
 
         try {
+            // Initialize the slideshow service which will load the current image
+            // and preload the next image
             await this.slideshowService.initialize();
 
+            // Set up swipe gestures
             this.hammer = new Hammer(this);
             this.hammer.on('swipeleft', () => {
                 this.nextSlide();
@@ -157,6 +163,7 @@ export class PhotoSlideshow extends LitElement {
                 this.previousSlide();
             });
 
+            // Update the component with both current and next image info
             this.updatePhotoInfo();
         } catch (error) {
             console.error('Error initializing services:', error);
@@ -167,6 +174,7 @@ export class PhotoSlideshow extends LitElement {
 
     // Update photo information from the service
     private updatePhotoInfo() {
+        // Get current photo info
         const photoInfo = this.slideshowService.getCurrentPhotoInfo();
         if (photoInfo) {
             this.imageUrl = photoInfo.url;
@@ -176,6 +184,18 @@ export class PhotoSlideshow extends LitElement {
             this.imageUrl = this.slideshowService.getCurrentImageUrl();
             this.photoLocation = null;
             this.photoDate = null;
+        }
+
+        // Get next photo info
+        const nextPhotoInfo = this.slideshowService.getNextPhotoInfo();
+        if (nextPhotoInfo) {
+            this.nextImageUrl = nextPhotoInfo.url;
+            this.nextPhotoLocation = nextPhotoInfo.location;
+            this.nextPhotoDate = nextPhotoInfo.date;
+        } else {
+            this.nextImageUrl = this.slideshowService.getNextImageUrl();
+            this.nextPhotoLocation = null;
+            this.nextPhotoDate = null;
         }
     }
 
@@ -190,7 +210,7 @@ export class PhotoSlideshow extends LitElement {
     }
 
     nextSlide() {
-        this.transitionToNextImage(() => this.slideshowService.nextImage());
+        this.transitionToNextImage(() => this.slideshowService.advanceImage());
     }
 
     previousSlide() {
@@ -200,11 +220,24 @@ export class PhotoSlideshow extends LitElement {
     private async transitionToNextImage(callback: () => Promise<unknown>) {
         if (this.transitioning) return;
         this.transitioning = true;
+        this.isTransitioning = true;
 
-        await callback();
-        this.updatePhotoInfo();
+        // Start the cross-fade animation
+        // The CSS will handle the actual animation based on the isTransitioning state
 
-        this.transitioning = false;
+        // Wait for the transition duration
+        setTimeout(async () => {
+            // After the fade out, load the next image
+            await callback();
+            this.updatePhotoInfo();
+
+            // Wait a bit for the DOM to update
+            setTimeout(() => {
+                // End the transition
+                this.isTransitioning = false;
+                this.transitioning = false;
+            }, 50);
+        }, this.transitionDuration);
     }
 
     render() {
@@ -212,7 +245,7 @@ export class PhotoSlideshow extends LitElement {
             ${this.isLoading ? html`<loading-spinner></loading-spinner>` : ``}
             <div class="slideshow-container">
                 ${this.imageUrl ? html`
-                    <div class="image-container current">
+                    <div class="image-container ${this.isTransitioning ? 'previous' : 'current'}">
                         <div class="image-background" style="background-image: url(${this.imageUrl})"></div>
                         <img class="image" src="${this.imageUrl}" alt="Current photo"/>
 
@@ -220,6 +253,20 @@ export class PhotoSlideshow extends LitElement {
                             <div class="photo-info">
                                 ${this.photoLocation ? html`<p>📍 ${this.photoLocation}</p>` : ''}
                                 ${this.photoDate ? html`<p>📅 ${this.photoDate}</p>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : ''}
+
+                ${this.nextImageUrl ? html`
+                    <div class="image-container ${this.isTransitioning ? 'current' : 'next'}">
+                        <div class="image-background" style="background-image: url(${this.nextImageUrl})"></div>
+                        <img class="image" src="${this.nextImageUrl}" alt="Next photo"/>
+
+                        ${(this.nextPhotoLocation || this.nextPhotoDate) ? html`
+                            <div class="photo-info">
+                                ${this.nextPhotoLocation ? html`<p>📍 ${this.nextPhotoLocation}</p>` : ''}
+                                ${this.nextPhotoDate ? html`<p>📅 ${this.nextPhotoDate}</p>` : ''}
                             </div>
                         ` : ''}
                     </div>
