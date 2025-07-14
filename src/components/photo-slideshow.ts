@@ -1,124 +1,120 @@
 import {css, html, LitElement} from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, state} from 'lit/decorators.js';
 import {PhotoPrismPhoto} from '../types/photoprism.types';
 import slideshowService from '../services/slideshow-service';
-import autoPlayService from '../services/auto-play-service';
 import touchHandlerService from '../services/touch-handler-service';
 
 @customElement('photo-slideshow')
 export class PhotoSlideshow extends LitElement {
     static styles = css`
-    :host {
-      display: block;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
-      background-color: #000;
-      --transition-duration: 1s;
-    }
+        :host {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            background-color: #000;
+            --transition-duration: 1s;
+        }
 
-    .slideshow-container {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
+        .slideshow-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
 
-    /* Image containers and transitions */
-    .image-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      transition: opacity var(--transition-duration) ease-in-out;
-    }
+        /* Image containers and transitions */
 
-    .image-container.current {
-      opacity: 1;
-      z-index: 2;
-    }
+        .image-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity var(--transition-duration) ease-in-out;
+        }
 
-    .image-container.next,
-    .image-container.previous {
-      opacity: 0;
-      z-index: 1;
-    }
+        .image-container.current {
+            opacity: 1;
+            z-index: 2;
+        }
 
-    .image-background {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-size: cover;
-      background-position: center;
-      filter: blur(20px);
-      transform: scale(1.1);
-      opacity: 0.5;
-    }
+        .image-container.next,
+        .image-container.previous {
+            opacity: 0;
+            z-index: 1;
+        }
 
-    .image {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-      z-index: 1;
-      position: relative;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    }
+        .image-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            filter: blur(20px);
+            transform: scale(1.1);
+            opacity: 0.5;
+        }
 
-    /* Navigation buttons */
-    .nav-buttons {
-      position: absolute;
-      top: 50%;
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      z-index: 3;
-      transform: translateY(-50%);
-    }
+        .image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            z-index: 1;
+            position: relative;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
 
-    .nav-button {
-      background: rgba(0, 0, 0, 0.5);
-      color: #ffffff;
-      border: none;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      margin: 0 20px;
-      font-size: 24px;
-      transition: background-color 0.2s ease, transform 0.2s ease;
-    }
+        /* Navigation buttons */
 
-    .nav-button:hover {
-      background: rgba(0, 0, 0, 0.7);
-      transform: scale(1.1);
-    }
+        .nav-buttons {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            z-index: 3;
+            transform: translateY(-50%);
+        }
 
-    @media (max-width: 768px) {
-      .nav-button {
-        width: 40px;
-        height: 40px;
-        font-size: 20px;
-        margin: 0 10px;
-      }
-    }
-  `;
-    // Configuration properties
-    @property({type: String}) albumUid: string = '';
-    @property({type: Number}) cacheSize: number = 10;
-    @property({type: Number}) transitionDuration: number = 1000;
-    @property({type: Boolean}) autoPlay: boolean = true;
-    @property({type: Number}) slideDuration: number = 10000; // 10 seconds
-    // Events
-    @property({type: Boolean}) emitEvents: boolean = false;
+        .nav-button {
+            background: rgba(0, 0, 0, 0.5);
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            margin: 0 20px;
+            font-size: 24px;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .nav-button:hover {
+            background: rgba(0, 0, 0, 0.7);
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .nav-button {
+                width: 40px;
+                height: 40px;
+                font-size: 20px;
+                margin: 0 10px;
+            }
+        }
+    `;
+
+    public transitionDuration: number = 1000;
+
     @state() private loading = true;
     @state() private currentImageUrl: string | null = null;
     @state() private nextImageUrl: string | null = null;
@@ -131,18 +127,13 @@ export class PhotoSlideshow extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
-
-        // Initialize services
         this.initializeServices();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
 
-        // Clean up auto-play service
-        autoPlayService.dispose();
-
-        // Clean up touch handler service
+        slideshowService.dispose();
         touchHandlerService.dispose();
     }
 
@@ -193,45 +184,40 @@ export class PhotoSlideshow extends LitElement {
 
     render() {
         return html`
-      <div class="slideshow-container">
-        ${this.currentImageUrl ? html`
-          <div class="image-container current">
-            <div class="image-background" style="background-image: url(${this.currentImageUrl})"></div>
-            <img class="image" src="${this.currentImageUrl}" alt="Current photo" />
-          </div>
-        ` : ''}
+            <div class="slideshow-container">
+                ${this.currentImageUrl ? html`
+                    <div class="image-container current">
+                        <div class="image-background" style="background-image: url(${this.currentImageUrl})"></div>
+                        <img class="image" src="${this.currentImageUrl}" alt="Current photo"/>
+                    </div>
+                ` : ''}
 
-        ${this.nextImageUrl ? html`
-          <div class="image-container next">
-            <div class="image-background" style="background-image: url(${this.nextImageUrl})"></div>
-            <img class="image" src="${this.nextImageUrl}" alt="Next photo" />
-          </div>
-        ` : ''}
+                ${this.nextImageUrl ? html`
+                    <div class="image-container next">
+                        <div class="image-background" style="background-image: url(${this.nextImageUrl})"></div>
+                        <img class="image" src="${this.nextImageUrl}" alt="Next photo"/>
+                    </div>
+                ` : ''}
 
-        ${this.previousImageUrl ? html`
-          <div class="image-container previous">
-            <div class="image-background" style="background-image: url(${this.previousImageUrl})"></div>
-            <img class="image" src="${this.previousImageUrl}" alt="Previous photo" />
-          </div>
-        ` : ''}
+                ${this.previousImageUrl ? html`
+                    <div class="image-container previous">
+                        <div class="image-background" style="background-image: url(${this.previousImageUrl})"></div>
+                        <img class="image" src="${this.previousImageUrl}" alt="Previous photo"/>
+                    </div>
+                ` : ''}
 
-        <div class="nav-buttons">
-          <button class="nav-button" @click=${this.previousSlide}>❮</button>
-          <button class="nav-button" @click=${this.nextSlide}>❯</button>
-        </div>
-
-        <slot></slot>
-      </div>
-    `;
+                <div class="nav-buttons">
+                    <button class="nav-button" @click=${this.previousSlide}>❮</button>
+                    <button class="nav-button" @click=${this.nextSlide}>❯</button>
+                </div>
+            </div>
+        `;
     }
 
     private async initializeServices() {
         try {
-            // Initialize the slideshow service
-            const initialized = await slideshowService.initialize(this.albumUid, this.cacheSize);
-
-            // Initialize the auto-play service
-            autoPlayService.initialize(this.autoPlay, this.slideDuration);
+            // Initialize the slideshow service with auto-play enabled
+            const initialized = await slideshowService.initialize('', 10, true, 1000);
 
             // Initialize the touch handler service
             touchHandlerService.initialize(this);
@@ -251,16 +237,8 @@ export class PhotoSlideshow extends LitElement {
     }
 
     private updateImageUrls() {
-        // Get image URLs from the slideshow service
         this.currentImageUrl = slideshowService.getCurrentImageUrl();
         this.nextImageUrl = slideshowService.getNextImageUrl();
         this.previousImageUrl = slideshowService.getPreviousImageUrl();
-
-        // Emit event if needed
-        if (this.emitEvents) {
-            this.dispatchEvent(new CustomEvent('image-changed', {
-                detail: {image: slideshowService.getCurrentImage()}
-            }));
-        }
     }
 }
