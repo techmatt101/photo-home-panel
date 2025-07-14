@@ -1,4 +1,3 @@
-import axios from 'axios';
 import {PhotoPrismAlbum, PhotoPrismConfig, PhotoPrismConfigResponse, PhotoPrismPhoto, PhotoSearchParams} from '../types/photoprism.types';
 import authService, {AuthServiceRegistration} from './auth-service';
 
@@ -74,18 +73,34 @@ class PhotoPrismService {
                 await this.login();
             }
 
-            const response = await axios.get(`/api/photoprism/v1/photos`, {
-                headers: this.getHeaders(),
-                params
+            // Create URL with query parameters
+            const url = new URL(`/api/photoprism/v1/photos`, window.location.origin);
+            if (params) {
+                Object.entries(params).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null) {
+                        url.searchParams.append(key, String(value));
+                    }
+                });
+            }
+
+            const response = await fetch(url.toString(), {
+                method: 'GET',
+                headers: this.getHeaders()
             });
 
-            if (response.data && Array.isArray(response.data)) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data && Array.isArray(data)) {
                 // Cache photos for faster access
-                response.data.forEach((photo: PhotoPrismPhoto) => {
+                data.forEach((photo: PhotoPrismPhoto) => {
                     this.photoCache.set(photo.UID, photo);
                 });
 
-                return response.data;
+                return data;
             } else {
                 return [];
             }
@@ -114,13 +129,20 @@ class PhotoPrismService {
                 await this.login();
             }
 
-            const response = await axios.get(`/api/photoprism/v1/photos/${uid}`, {
+            const response = await fetch(`/api/photoprism/v1/photos/${uid}`, {
+                method: 'GET',
                 headers: this.getHeaders()
             });
 
-            if (response.data) {
-                this.photoCache.set(uid, response.data);
-                return response.data;
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data) {
+                this.photoCache.set(uid, data);
+                return data;
             } else {
                 return null;
             }
@@ -160,17 +182,24 @@ class PhotoPrismService {
                 await this.login();
             }
 
-            const response = await axios.get(`/api/photoprism/v1/albums`, {
+            const response = await fetch(`/api/photoprism/v1/albums`, {
+                method: 'GET',
                 headers: this.getHeaders()
             });
 
-            if (response.data && Array.isArray(response.data)) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data && Array.isArray(data)) {
                 // Cache albums for faster access
-                response.data.forEach((album: PhotoPrismAlbum) => {
+                data.forEach((album: PhotoPrismAlbum) => {
                     this.albumCache.set(album.UID, album);
                 });
 
-                return response.data;
+                return data;
             } else {
                 return [];
             }
@@ -194,17 +223,24 @@ class PhotoPrismService {
                 await this.login();
             }
 
-            const response = await axios.get(`/api/photoprism/v1/albums/${albumUid}/photos`, {
+            const response = await fetch(`/api/photoprism/v1/albums/${albumUid}/photos`, {
+                method: 'GET',
                 headers: this.getHeaders()
             });
 
-            if (response.data && Array.isArray(response.data)) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data && Array.isArray(data)) {
                 // Cache photos for faster access
-                response.data.forEach((photo: PhotoPrismPhoto) => {
+                data.forEach((photo: PhotoPrismPhoto) => {
                     this.photoCache.set(photo.UID, photo);
                 });
 
-                return response.data;
+                return data;
             } else {
                 return [];
             }
@@ -329,16 +365,23 @@ class PhotoPrismService {
             this.authRequested = false;
 
             // Verify the API key by making a simple request
-            const testResponse = await axios.get(`/api/photoprism/v1/config`, {
+            const response = await fetch(`/api/photoprism/v1/config`, {
+                method: 'GET',
                 headers: this.getHeaders()
             });
 
-            if (!testResponse.data) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data) {
                 throw new Error('Failed to verify API key');
             }
 
             // Extract and store the previewToken from the config response
-            const configResponse = testResponse.data as PhotoPrismConfigResponse;
+            const configResponse = data as PhotoPrismConfigResponse;
             if (configResponse.previewToken) {
                 this.previewToken = configResponse.previewToken;
                 console.log('PhotoPrism preview token retrieved successfully');
