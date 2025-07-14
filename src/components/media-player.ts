@@ -1,11 +1,11 @@
-import { LitElement, html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import {css, html, LitElement} from 'lit';
+import {customElement} from 'lit/decorators.js';
 import mediaPlayerService from '../services/media-player-service';
 
 @customElement('media-player')
 export class MediaPlayer extends LitElement {
 
-  static styles = css`
+    static styles = css`
     :host {
       display: block;
       color: var(--primary-color, #ffffff);
@@ -58,61 +58,38 @@ export class MediaPlayer extends LitElement {
     }
   `;
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.initializeMediaPlayer();
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-
-    // Clean up service
-    mediaPlayerService.dispose();
-  }
-
-  private async initializeMediaPlayer() {
-    try {
-      // Initialize the media player service
-      const initialized = await mediaPlayerService.initialize();
-
-      if (initialized) {
-        // Subscribe to media player updates to trigger re-renders
-        mediaPlayerService.subscribeMediaPlayer(() => {
-          this.requestUpdate();
-        });
-      } else {
-        console.error('Failed to initialize media player service');
-      }
-    } catch (error) {
-      console.error('Error initializing media player service:', error);
-    }
-  }
-
-  // Control media player
-  private async mediaCommand(command: 'play' | 'pause' | 'next' | 'previous') {
-    await mediaPlayerService.mediaCommand(command);
-  }
-
-  render() {
-    const hasMedia = mediaPlayerService.hasMedia();
-
-    // Dispatch event to notify parent components about media availability
-    this.dispatchEvent(new CustomEvent('has-media', { detail: { hasMedia } }));
-
-    if (!hasMedia) {
-      return null;
+    connectedCallback() {
+        super.connectedCallback();
+        this.initializeMediaPlayer();
     }
 
-    const mediaStatus = mediaPlayerService.getMediaStatus();
-    const isPlaying = mediaPlayerService.isPlaying();
+    disconnectedCallback() {
+        super.disconnectedCallback();
 
-    if (!mediaStatus) {
-      return null;
+        // Clean up service
+        mediaPlayerService.dispose();
     }
 
-    const { attributes } = mediaStatus;
+    render() {
+        const hasMedia = mediaPlayerService.hasMedia();
 
-    return html`
+        // Dispatch event to notify parent components about media availability
+        this.dispatchEvent(new CustomEvent('has-media', {detail: {hasMedia}}));
+
+        if (!hasMedia) {
+            return null;
+        }
+
+        const mediaStatus = mediaPlayerService.getMediaStatus();
+        const isPlaying = mediaPlayerService.isPlaying();
+
+        if (!mediaStatus) {
+            return null;
+        }
+
+        const {attributes} = mediaStatus;
+
+        return html`
       <div class="media-status">
         <div class="media-info">
           ${attributes.media_title ? html`<div class="media-title">${attributes.media_title}</div>` : ''}
@@ -127,5 +104,28 @@ export class MediaPlayer extends LitElement {
         </div>
       </div>
     `;
-  }
+    }
+
+    private async initializeMediaPlayer() {
+        try {
+            // Initialize the media player service
+            const initialized = await mediaPlayerService.initialize();
+
+            if (initialized) {
+                // Subscribe to media player updates to trigger re-renders
+                mediaPlayerService.subscribeMediaPlayer(() => {
+                    this.requestUpdate();
+                });
+            } else {
+                console.error('Failed to initialize media player service');
+            }
+        } catch (error) {
+            console.error('Error initializing media player service:', error);
+        }
+    }
+
+    // Control media player
+    private async mediaCommand(command: 'play' | 'pause' | 'next' | 'previous') {
+        await mediaPlayerService.mediaCommand(command);
+    }
 }

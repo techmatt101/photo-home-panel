@@ -1,34 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Photo slideshow with Home Assistant integration">
-  <meta name="theme-color" content="#000000">
-  <link rel="icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
-  <title>Photo Slideshow</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #000;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    }
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="description" content="Photo slideshow with Home Assistant integration">
+    <meta name="theme-color" content="#000000">
+    <link rel="icon" href="/favicon.ico"/>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+    <title>Photo Slideshow</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
 
-    /* Hide content until custom elements are defined */
-    body:not(:defined) {
-      display: none;
-    }
-  </style>
+        /* Hide content until custom elements are defined */
+        body:not(:defined) {
+            display: none;
+        }
+    </style>
 </head>
 <body>
-  <root-app></root-app>
+<root-app></root-app>
 
-  <script type="module" src="/src/index.ts"></script>
+<script type="module" src="/src/index.ts"></script>
 </body>
 </html>

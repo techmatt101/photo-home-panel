@@ -1,29 +1,13 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, state, property } from 'lit/decorators.js';
-import { PhotoPrismPhoto } from '../types/photoprism.types';
+import {css, html, LitElement} from 'lit';
+import {customElement, property, state} from 'lit/decorators.js';
+import {PhotoPrismPhoto} from '../types/photoprism.types';
 import slideshowService from '../services/slideshow-service';
 import autoPlayService from '../services/auto-play-service';
 import touchHandlerService from '../services/touch-handler-service';
 
 @customElement('photo-slideshow')
 export class PhotoSlideshow extends LitElement {
-  @state() private loading = true;
-  @state() private currentImageUrl: string | null = null;
-  @state() private nextImageUrl: string | null = null;
-  @state() private previousImageUrl: string | null = null;
-  @state() private transitioning = false;
-
-  // Configuration properties
-  @property({ type: String }) albumUid: string = '';
-  @property({ type: Number }) cacheSize: number = 10;
-  @property({ type: Number }) transitionDuration: number = 1000;
-  @property({ type: Boolean }) autoPlay: boolean = true;
-  @property({ type: Number }) slideDuration: number = 10000; // 10 seconds
-
-  // Events
-  @property({ type: Boolean }) emitEvents: boolean = false;
-
-  static styles = css`
+    static styles = css`
     :host {
       display: block;
       width: 100%;
@@ -127,116 +111,88 @@ export class PhotoSlideshow extends LitElement {
       }
     }
   `;
+    // Configuration properties
+    @property({type: String}) albumUid: string = '';
+    @property({type: Number}) cacheSize: number = 10;
+    @property({type: Number}) transitionDuration: number = 1000;
+    @property({type: Boolean}) autoPlay: boolean = true;
+    @property({type: Number}) slideDuration: number = 10000; // 10 seconds
+    // Events
+    @property({type: Boolean}) emitEvents: boolean = false;
+    @state() private loading = true;
+    @state() private currentImageUrl: string | null = null;
+    @state() private nextImageUrl: string | null = null;
+    @state() private previousImageUrl: string | null = null;
+    @state() private transitioning = false;
 
-  constructor() {
-    super();
-  }
+    constructor() {
+        super();
+    }
 
-  connectedCallback() {
-    super.connectedCallback();
+    connectedCallback() {
+        super.connectedCallback();
 
-    // Initialize services
-    this.initializeServices();
-  }
+        // Initialize services
+        this.initializeServices();
+    }
 
-  disconnectedCallback() {
-    super.disconnectedCallback();
+    disconnectedCallback() {
+        super.disconnectedCallback();
 
-    // Clean up auto-play service
-    autoPlayService.dispose();
+        // Clean up auto-play service
+        autoPlayService.dispose();
 
-    // Clean up touch handler service
-    touchHandlerService.dispose();
-  }
+        // Clean up touch handler service
+        touchHandlerService.dispose();
+    }
 
-  private async initializeServices() {
-    try {
-      // Initialize the slideshow service
-      const initialized = await slideshowService.initialize(this.albumUid, this.cacheSize);
+    // Public methods that can be called from outside
+    public async nextSlide() {
+        if (this.transitioning) return;
 
-      // Initialize the auto-play service
-      autoPlayService.initialize(this.autoPlay, this.slideDuration);
+        this.transitioning = true;
 
-      // Initialize the touch handler service
-      touchHandlerService.initialize(this);
+        // Use the slideshow service to move to the next image
+        if (slideshowService) {
+            await slideshowService.nextImage();
+        }
 
-      if (initialized) {
-        // Update image URLs from the slideshow service
+        // Update the image URLs
         this.updateImageUrls();
-      } else {
-        console.error('Failed to initialize slideshow service');
-      }
-    } catch (error) {
-      console.error('Error initializing services:', error);
-    } finally {
-      this.loading = false;
-      this.dispatchEvent(new CustomEvent('loading-changed', { detail: { loading: this.loading } }));
-    }
-  }
 
-  private updateImageUrls() {
-    // Get image URLs from the slideshow service
-    this.currentImageUrl = slideshowService.getCurrentImageUrl();
-    this.nextImageUrl = slideshowService.getNextImageUrl();
-    this.previousImageUrl = slideshowService.getPreviousImageUrl();
-
-    // Emit event if needed
-    if (this.emitEvents) {
-      this.dispatchEvent(new CustomEvent('image-changed', { 
-        detail: { image: slideshowService.getCurrentImage() } 
-      }));
-    }
-  }
-
-
-
-  // Public methods that can be called from outside
-  public async nextSlide() {
-    if (this.transitioning) return;
-
-    this.transitioning = true;
-
-    // Use the slideshow service to move to the next image
-    if (slideshowService) {
-      await slideshowService.nextImage();
+        // After the transition duration, mark as not transitioning
+        setTimeout(() => {
+            this.transitioning = false;
+            this.requestUpdate();
+        }, this.transitionDuration);
     }
 
-    // Update the image URLs
-    this.updateImageUrls();
+    public async previousSlide() {
+        if (this.transitioning) return;
 
-    // After the transition duration, mark as not transitioning
-    setTimeout(() => {
-      this.transitioning = false;
-      this.requestUpdate();
-    }, this.transitionDuration);
-  }
+        this.transitioning = true;
 
-  public async previousSlide() {
-    if (this.transitioning) return;
+        // Use the slideshow service to move to the previous image
+        if (slideshowService) {
+            await slideshowService.previousImage();
+        }
 
-    this.transitioning = true;
+        // Update the image URLs
+        this.updateImageUrls();
 
-    // Use the slideshow service to move to the previous image
-    if (slideshowService) {
-      await slideshowService.previousImage();
+        // After the transition duration, mark as not transitioning
+        setTimeout(() => {
+            this.transitioning = false;
+            this.requestUpdate();
+        }, this.transitionDuration);
     }
 
-    // Update the image URLs
-    this.updateImageUrls();
+    public getCurrentImage(): PhotoPrismPhoto | null {
+        return slideshowService.getCurrentImage();
+    }
 
-    // After the transition duration, mark as not transitioning
-    setTimeout(() => {
-      this.transitioning = false;
-      this.requestUpdate();
-    }, this.transitionDuration);
-  }
-
-  public getCurrentImage(): PhotoPrismPhoto | null {
-    return slideshowService.getCurrentImage();
-  }
-
-  render() {
-    return html`
+    render() {
+        return html`
       <div class="slideshow-container">
         ${this.currentImageUrl ? html`
           <div class="image-container current">
@@ -267,5 +223,44 @@ export class PhotoSlideshow extends LitElement {
         <slot></slot>
       </div>
     `;
-  }
+    }
+
+    private async initializeServices() {
+        try {
+            // Initialize the slideshow service
+            const initialized = await slideshowService.initialize(this.albumUid, this.cacheSize);
+
+            // Initialize the auto-play service
+            autoPlayService.initialize(this.autoPlay, this.slideDuration);
+
+            // Initialize the touch handler service
+            touchHandlerService.initialize(this);
+
+            if (initialized) {
+                // Update image URLs from the slideshow service
+                this.updateImageUrls();
+            } else {
+                console.error('Failed to initialize slideshow service');
+            }
+        } catch (error) {
+            console.error('Error initializing services:', error);
+        } finally {
+            this.loading = false;
+            this.dispatchEvent(new CustomEvent('loading-changed', {detail: {loading: this.loading}}));
+        }
+    }
+
+    private updateImageUrls() {
+        // Get image URLs from the slideshow service
+        this.currentImageUrl = slideshowService.getCurrentImageUrl();
+        this.nextImageUrl = slideshowService.getNextImageUrl();
+        this.previousImageUrl = slideshowService.getPreviousImageUrl();
+
+        // Emit event if needed
+        if (this.emitEvents) {
+            this.dispatchEvent(new CustomEvent('image-changed', {
+                detail: {image: slideshowService.getCurrentImage()}
+            }));
+        }
+    }
 }

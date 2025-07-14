@@ -1,13 +1,11 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { CalendarEntity } from '../types/home-assistant.types';
+import {css, html, LitElement} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import {CalendarEntity} from '../types/home-assistant.types';
 import calendarEventsService from '../services/calendar-events-service';
 
 @customElement('calendar-events')
 export class CalendarEvents extends LitElement {
-  @state() private upcomingEvents: CalendarEntity[] = [];
-
-  static styles = css`
+    static styles = css`
     :host {
       display: block;
       color: var(--primary-color, #ffffff);
@@ -47,47 +45,29 @@ export class CalendarEvents extends LitElement {
       font-size: 0.9rem;
     }
   `;
+    @state() private upcomingEvents: CalendarEntity[] = [];
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.initializeCalendarEvents();
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-
-    // Clean up service
-    calendarEventsService.dispose();
-  }
-
-  private async initializeCalendarEvents() {
-    try {
-      // Initialize the calendar events service
-      const initialized = await calendarEventsService.initialize();
-
-      if (initialized) {
-        // Subscribe to calendar events updates
-        calendarEventsService.subscribeEvents((events) => {
-          this.upcomingEvents = events;
-          this.requestUpdate();
-        });
-      } else {
-        console.error('Failed to initialize calendar events service');
-      }
-    } catch (error) {
-      console.error('Error initializing calendar events service:', error);
-    }
-  }
-
-  render() {
-    if (this.upcomingEvents.length === 0) {
-      this.dispatchEvent(new CustomEvent('has-events', { detail: { hasEvents: false } }));
-      return null;
+    connectedCallback() {
+        super.connectedCallback();
+        this.initializeCalendarEvents();
     }
 
-    this.dispatchEvent(new CustomEvent('has-events', { detail: { hasEvents: true } }));
+    disconnectedCallback() {
+        super.disconnectedCallback();
 
-    return html`
+        // Clean up service
+        calendarEventsService.dispose();
+    }
+
+    render() {
+        if (this.upcomingEvents.length === 0) {
+            this.dispatchEvent(new CustomEvent('has-events', {detail: {hasEvents: false}}));
+            return null;
+        }
+
+        this.dispatchEvent(new CustomEvent('has-events', {detail: {hasEvents: true}}));
+
+        return html`
       <div class="calendar-events">
         <h3>Upcoming Events</h3>
         <ul>
@@ -98,9 +78,28 @@ export class CalendarEvents extends LitElement {
                 <div class="event-title">${event.attributes.friendly_name}</div>
               </li>
             `;
-          })}
+        })}
         </ul>
       </div>
     `;
-  }
+    }
+
+    private async initializeCalendarEvents() {
+        try {
+            // Initialize the calendar events service
+            const initialized = await calendarEventsService.initialize();
+
+            if (initialized) {
+                // Subscribe to calendar events updates
+                calendarEventsService.subscribeEvents((events) => {
+                    this.upcomingEvents = events;
+                    this.requestUpdate();
+                });
+            } else {
+                console.error('Failed to initialize calendar events service');
+            }
+        } catch (error) {
+            console.error('Error initializing calendar events service:', error);
+        }
+    }
 }

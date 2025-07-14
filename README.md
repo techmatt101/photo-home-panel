@@ -6,17 +6,17 @@ A Progressive Web Application (PWA) that displays a photo slideshow from PhotoPr
 
 - **GPU-accelerated photo slideshow** with smooth transitions
 - **Intelligent photo selection** that favors:
-  - Newer photos
-  - Photos matching the device orientation (landscape/portrait)
-  - Photos from the same album or with similar tags
+    - Newer photos
+    - Photos matching the device orientation (landscape/portrait)
+    - Photos from the same album or with similar tags
 - **Blurred background** behind photos for an elegant look
 - **Swipe navigation** for touch devices
 - **Home Assistant integration** showing:
-  - Current weather for Stafford, UK
-  - Calendar events and reminders
-  - Spotify playback status with controls
-  - TV status
-  - Smart home controls (lights, vacuum)
+    - Current weather for Stafford, UK
+    - Calendar events and reminders
+    - Spotify playback status with controls
+    - TV status
+    - Smart home controls (lights, vacuum)
 - **Offline mode** with cached photos
 - **Responsive design** that works on tablets and other devices
 - **PWA capabilities** for installation on home screen
@@ -45,8 +45,8 @@ A Progressive Web Application (PWA) that displays a photo slideshow from PhotoPr
    npm install
    ```
 3. Configure your environment variables:
-   - Copy `.env.example` to `.env`
-   - Edit `.env` to set your PhotoPrism and Home Assistant URLs and credentials
+    - Copy `.env.example` to `.env`
+    - Edit `.env` to set your PhotoPrism and Home Assistant URLs and credentials
 
 ### Development
 
@@ -86,8 +86,8 @@ The application provides a user-friendly authentication system for both PhotoPri
 3. **Manual Configuration**: You can also pre-configure credentials using environment variables (see below).
 
 4. **Authentication Flow**:
-   - For PhotoPrism: Username and password authentication
-   - For Home Assistant: Either a long-lived access token or the standard OAuth flow
+    - For PhotoPrism: Username and password authentication
+    - For Home Assistant: Either a long-lived access token or the standard OAuth flow
 
 5. **Privacy**: All credentials are stored locally on your device and are never sent to any third-party servers.
 
@@ -104,12 +104,13 @@ The `<photo-slideshow>` component accepts the following attributes:
 Example:
 
 ```html
-<photo-slideshow 
-  album-uid="abc123" 
-  cache-size="20" 
-  transition-duration="2000" 
-  auto-play="true" 
-  slide-duration="5000">
+
+<photo-slideshow
+    album-uid="abc123"
+    cache-size="20"
+    transition-duration="2000"
+    auto-play="true"
+    slide-duration="5000">
 </photo-slideshow>
 ```
 
@@ -121,11 +122,11 @@ The component uses CSS custom properties that can be overridden:
 
 ```css
 photo-slideshow {
-  --primary-color: #ffffff;
-  --secondary-color: rgba(255, 255, 255, 0.8);
-  --background-overlay: rgba(0, 0, 0, 0.5);
-  --accent-color: #4285f4;
-  --transition-duration: 1s;
+    --primary-color: #ffffff;
+    --secondary-color: rgba(255, 255, 255, 0.8);
+    --background-overlay: rgba(0, 0, 0, 0.5);
+    --accent-color: #4285f4;
+    --transition-duration: 1s;
 }
 ```
 

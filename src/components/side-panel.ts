@@ -1,11 +1,9 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import {css, html, LitElement} from 'lit';
+import {customElement, property} from 'lit/decorators.js';
 
 @customElement('side-panel')
 export class SidePanel extends LitElement {
-  @property({ type: Boolean }) hasContent: boolean = false;
-
-  static styles = css`
+    static styles = css`
     :host {
       display: block;
     }
@@ -51,12 +49,13 @@ export class SidePanel extends LitElement {
       }
     }
   `;
+    @property({type: Boolean}) hasContent: boolean = false;
 
-  render() {
-    return html`
+    render() {
+        return html`
       <div class="side-panel ${this.hasContent ? 'has-content' : ''}">
         <slot></slot>
       </div>
     `;
-  }
+    }
 }

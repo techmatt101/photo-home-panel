@@ -1,12 +1,10 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
-import { PhotoPrismPhoto } from '../types/photoprism.types';
+import {css, html, LitElement} from 'lit';
+import {customElement, property} from 'lit/decorators.js';
+import {PhotoPrismPhoto} from '../types/photoprism.types';
 
 @customElement('info-overlay')
 export class InfoOverlay extends LitElement {
-  @property({ type: Object }) photo: PhotoPrismPhoto | null = null;
-
-  static styles = css`
+    static styles = css`
     :host {
       display: block;
       width: 100%;
@@ -62,34 +60,10 @@ export class InfoOverlay extends LitElement {
       }
     }
   `;
+    @property({type: Object}) photo: PhotoPrismPhoto | null = null;
 
-  // Format a date from ISO string
-  private formatPhotoDate(isoDate: string): string {
-    if (!isoDate) return '';
-
-    const date = new Date(isoDate);
-    return new Intl.DateTimeFormat('en-GB', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date);
-  }
-
-  // Get location string from photo
-  private getPhotoLocation(photo: PhotoPrismPhoto | null): string {
-    if (!photo) return '';
-
-    // In a real app, you would use a reverse geocoding service
-    // to get the location name from the coordinates
-    if (photo.Lat && photo.Lng) {
-      return `${photo.Lat.toFixed(4)}, ${photo.Lng.toFixed(4)}`;
-    }
-
-    return photo.PlaceID || 'Unknown Location';
-  }
-
-  render() {
-    return html`
+    render() {
+        return html`
       <div class="info-overlay">
         <div class="photo-info">
           ${this.photo ? html`
@@ -101,5 +75,30 @@ export class InfoOverlay extends LitElement {
         <slot></slot>
       </div>
     `;
-  }
+    }
+
+    // Format a date from ISO string
+    private formatPhotoDate(isoDate: string): string {
+        if (!isoDate) return '';
+
+        const date = new Date(isoDate);
+        return new Intl.DateTimeFormat('en-GB', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }).format(date);
+    }
+
+    // Get location string from photo
+    private getPhotoLocation(photo: PhotoPrismPhoto | null): string {
+        if (!photo) return '';
+
+        // In a real app, you would use a reverse geocoding service
+        // to get the location name from the coordinates
+        if (photo.Lat && photo.Lng) {
+            return `${photo.Lat.toFixed(4)}, ${photo.Lng.toFixed(4)}`;
+        }
+
+        return photo.PlaceID || 'Unknown Location';
+    }
 }

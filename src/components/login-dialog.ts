@@ -1,10 +1,6 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import authService, { 
-  AuthRequiredEventDetail, 
-  AuthConfig, 
-  AuthFormField 
-} from '../services/auth-service';
+import {css, html, LitElement} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import authService, {AuthConfig, AuthFormField, AuthRequiredEventDetail} from '../services/auth-service';
 
 // Event names
 const EVENT_AUTH_REQUIRED = 'auth-required';
@@ -13,15 +9,7 @@ const EVENT_AUTH_FAILURE = 'auth-failure';
 
 @customElement('login-dialog')
 export class LoginDialog extends LitElement {
-  @state() private open = false;
-  @state() private authType: string = '';
-  @state() private message = '';
-  @state() private loading = false;
-  @state() private error = '';
-  @state() private formFields: AuthFormField[] = [];
-  @state() private formValues: Record<string, string> = {};
-
-  static styles = css`
+    static styles = css`
     :host {
       --dialog-bg: #ffffff;
       --dialog-text: #333333;
@@ -191,138 +179,34 @@ export class LoginDialog extends LitElement {
       }
     }
   `;
+    @state() private open = false;
+    @state() private authType: string = '';
+    @state() private message = '';
+    @state() private loading = false;
+    @state() private error = '';
+    @state() private formFields: AuthFormField[] = [];
+    @state() private formValues: Record<string, string> = {};
 
-  constructor() {
-    super();
-    this.addEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    window.addEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    window.removeEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
-  }
-
-  private handleAuthRequired(event: CustomEvent<AuthRequiredEventDetail>) {
-    this.authType = event.detail.type;
-    this.message = event.detail.message || '';
-    this.error = '';
-    this.loading = false;
-
-    // Get the registered service
-    const service = authService.getRegisteredService(this.authType);
-    if (!service) {
-      console.error(`Service ${this.authType} is not registered`);
-      return;
+    constructor() {
+        super();
+        this.addEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
     }
 
-    // Get form fields for this service
-    this.formFields = authService.getFormFields(this.authType);
-    console.log('formFields', this.formFields);
-
-    // Initialize form values from saved config
-    const config = authService.getConfig(this.authType) || {};
-    this.formValues = {};
-
-    // Initialize form values
-    for (const field of this.formFields) {
-      this.formValues[field.id] = config[field.id] || '';
+    connectedCallback() {
+        super.connectedCallback();
+        window.addEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
     }
 
-    this.open = true;
-    this.requestUpdate();
-  }
-
-  private handleSubmit(e: Event) {
-    e.preventDefault();
-    this.loading = true;
-    this.error = '';
-
-    this.submitForm();
-  }
-
-  private async submitForm() {
-    try {
-      // Validate required fields
-      for (const field of this.formFields) {
-        if (field.required && !this.formValues[field.id]) {
-          throw new Error(`Please fill in the ${field.label} field`);
-        }
-      }
-
-      // Create config object from form values
-      const config: AuthConfig = { ...this.formValues };
-
-      // Save to auth service
-      authService.setAuth(this.authType, config);
-
-      // Dispatch success event
-      window.dispatchEvent(new CustomEvent(EVENT_AUTH_SUCCESS, { 
-        detail: { type: this.authType } 
-      }));
-
-      // Close dialog
-      this.open = false;
-    } catch (error) {
-      this.error = error instanceof Error ? error.message : 'An unknown error occurred';
-      this.loading = false;
-
-      // Dispatch failure event
-      window.dispatchEvent(new CustomEvent(EVENT_AUTH_FAILURE, { 
-        detail: { 
-          type: this.authType,
-          error: this.error
-        } 
-      }));
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        window.removeEventListener(EVENT_AUTH_REQUIRED, (event) => this.handleAuthRequired(event as any));
     }
-  }
 
-  private handleCancel() {
-    // Dispatch failure event
-    window.dispatchEvent(new CustomEvent(EVENT_AUTH_FAILURE, { 
-      detail: { 
-        type: this.authType,
-        error: 'Authentication cancelled by user'
-      } 
-    }));
+    render() {
+        console.log('render', this.formFields, this.open);
+        const serviceName = this.authType ? authService.getServiceName(this.authType) : '';
 
-    // Close dialog
-    this.open = false;
-  }
-
-  private renderFormField(field: AuthFormField) {
-    return html`
-      <div class="form-group">
-        <label for="${field.id}">${field.label}</label>
-        <input 
-          type="${field.type}" 
-          id="${field.id}" 
-          .value=${this.formValues[field.id] || ''}
-          @input=${(e: InputEvent) => this.formValues[field.id] = (e.target as HTMLInputElement).value}
-          placeholder="${field.placeholder || ''}"
-          ?disabled=${this.loading}
-          ?required=${field.required}
-        >
-        ${field.helpText ? html`<p>${field.helpText}</p>` : ''}
-      </div>
-    `;
-  }
-
-  private renderForm() {
-    return html`
-      ${this.formFields.map(field => this.renderFormField(field))}
-    `;
-  }
-
-  render() {
-    console.log('render', this.formFields, this.open);
-    const serviceName = this.authType ? authService.getServiceName(this.authType) : '';
-
-    return html`
+        return html`
       <div class="overlay ${this.open ? 'open' : ''}">
         <div class="dialog">
           <div class="dialog-header">
@@ -353,15 +237,126 @@ export class LoginDialog extends LitElement {
                 class="primary"
                 ?disabled=${this.loading}
               >
-                ${this.loading 
-                  ? html`<span class="loading-spinner"></span> Connecting...` 
-                  : 'Connect'
-                }
+                ${this.loading
+            ? html`<span class="loading-spinner"></span> Connecting...`
+            : 'Connect'
+        }
               </button>
             </div>
           </form>
         </div>
       </div>
     `;
-  }
+    }
+
+    private handleAuthRequired(event: CustomEvent<AuthRequiredEventDetail>) {
+        this.authType = event.detail.type;
+        this.message = event.detail.message || '';
+        this.error = '';
+        this.loading = false;
+
+        // Get the registered service
+        const service = authService.getRegisteredService(this.authType);
+        if (!service) {
+            console.error(`Service ${this.authType} is not registered`);
+            return;
+        }
+
+        // Get form fields for this service
+        this.formFields = authService.getFormFields(this.authType);
+        console.log('formFields', this.formFields);
+
+        // Initialize form values from saved config
+        const config = authService.getConfig(this.authType) || {};
+        this.formValues = {};
+
+        // Initialize form values
+        for (const field of this.formFields) {
+            this.formValues[field.id] = config[field.id] || '';
+        }
+
+        this.open = true;
+        this.requestUpdate();
+    }
+
+    private handleSubmit(e: Event) {
+        e.preventDefault();
+        this.loading = true;
+        this.error = '';
+
+        this.submitForm();
+    }
+
+    private async submitForm() {
+        try {
+            // Validate required fields
+            for (const field of this.formFields) {
+                if (field.required && !this.formValues[field.id]) {
+                    throw new Error(`Please fill in the ${field.label} field`);
+                }
+            }
+
+            // Create config object from form values
+            const config: AuthConfig = {...this.formValues};
+
+            // Save to auth service
+            authService.setAuth(this.authType, config);
+
+            // Dispatch success event
+            window.dispatchEvent(new CustomEvent(EVENT_AUTH_SUCCESS, {
+                detail: {type: this.authType}
+            }));
+
+            // Close dialog
+            this.open = false;
+        } catch (error) {
+            this.error = error instanceof Error ? error.message : 'An unknown error occurred';
+            this.loading = false;
+
+            // Dispatch failure event
+            window.dispatchEvent(new CustomEvent(EVENT_AUTH_FAILURE, {
+                detail: {
+                    type: this.authType,
+                    error: this.error
+                }
+            }));
+        }
+    }
+
+    private handleCancel() {
+        // Dispatch failure event
+        window.dispatchEvent(new CustomEvent(EVENT_AUTH_FAILURE, {
+            detail: {
+                type: this.authType,
+                error: 'Authentication cancelled by user'
+            }
+        }));
+
+        // Close dialog
+        this.open = false;
+    }
+
+    private renderFormField(field: AuthFormField) {
+        return html`
+      <div class="form-group">
+        <label for="${field.id}">${field.label}</label>
+        <input 
+          type="${field.type}" 
+          id="${field.id}" 
+          .value=${this.formValues[field.id] || ''}
+          @input=${(e: InputEvent) => this.formValues[field.id] = (e.target as HTMLInputElement).value}
+          placeholder="${field.placeholder || ''}"
+          ?disabled=${this.loading}
+          ?required=${field.required}
+        >
+        ${field.helpText ? html`<p>${field.helpText}</p>` : ''}
+      </div>
+    `;
+    }
+
+    private renderForm() {
+        return html`
+      ${this.formFields.map(field => this.renderFormField(field))}
+    `;
+    }
 }

@@ -1,11 +1,11 @@
-import { LitElement, html, css } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import {css, html, LitElement} from 'lit';
+import {customElement} from 'lit/decorators.js';
 import controlButtonsService from '../services/control-buttons-service';
 
 @customElement('control-buttons')
 export class ControlButtons extends LitElement {
 
-  static styles = css`
+    static styles = css`
     :host {
       display: block;
     }
@@ -47,50 +47,22 @@ export class ControlButtons extends LitElement {
     }
   `;
 
-  connectedCallback() {
-    super.connectedCallback();
-    this.initializeControlButtons();
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-
-    // Clean up service
-    controlButtonsService.dispose();
-  }
-
-  private async initializeControlButtons() {
-    try {
-      // Initialize the control buttons service
-      const initialized = await controlButtonsService.initialize();
-
-      if (initialized) {
-        // Subscribe to TV updates to trigger re-renders
-        controlButtonsService.subscribeTV(() => {
-          this.requestUpdate();
-        });
-      } else {
-        console.error('Failed to initialize control buttons service');
-      }
-    } catch (error) {
-      console.error('Error initializing control buttons service:', error);
+    connectedCallback() {
+        super.connectedCallback();
+        this.initializeControlButtons();
     }
-  }
 
-  // Toggle a light
-  private async toggleLight(entityId: string) {
-    await controlButtonsService.toggleLight(entityId);
-  }
+    disconnectedCallback() {
+        super.disconnectedCallback();
 
-  // Start vacuum cleaner
-  private async startVacuum() {
-    await controlButtonsService.startVacuum();
-  }
+        // Clean up service
+        controlButtonsService.dispose();
+    }
 
-  render() {
-    const isTVOn = controlButtonsService.isTVOn();
+    render() {
+        const isTVOn = controlButtonsService.isTVOn();
 
-    return html`
+        return html`
       <div class="controls">
         <button class="control-button" title="Toggle living room lights" @click=${() => this.toggleLight('light.living_room')}>💡</button>
         <button class="control-button" title="Start vacuum cleaner" @click=${this.startVacuum}>🧹</button>
@@ -100,5 +72,33 @@ export class ControlButtons extends LitElement {
         <button class="control-button" title="Settings">⚙️</button>
       </div>
     `;
-  }
+    }
+
+    private async initializeControlButtons() {
+        try {
+            // Initialize the control buttons service
+            const initialized = await controlButtonsService.initialize();
+
+            if (initialized) {
+                // Subscribe to TV updates to trigger re-renders
+                controlButtonsService.subscribeTV(() => {
+                    this.requestUpdate();
+                });
+            } else {
+                console.error('Failed to initialize control buttons service');
+            }
+        } catch (error) {
+            console.error('Error initializing control buttons service:', error);
+        }
+    }
+
+    // Toggle a light
+    private async toggleLight(entityId: string) {
+        await controlButtonsService.toggleLight(entityId);
+    }
+
+    // Start vacuum cleaner
+    private async startVacuum() {
+        await controlButtonsService.startVacuum();
+    }
 }

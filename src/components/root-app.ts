@@ -1,6 +1,6 @@
-import { LitElement, html, css } from 'lit';
-import { customElement, state, property } from 'lit/decorators.js';
-import { PhotoPrismPhoto } from '../types/photoprism.types';
+import {css, html, LitElement} from 'lit';
+import {customElement, property, state} from 'lit/decorators.js';
+import {PhotoPrismPhoto} from '../types/photoprism.types';
 
 // Import sub-components
 import './photo-slideshow';
@@ -14,18 +14,7 @@ import './login-dialog';
 
 @customElement('root-app')
 export class RootApp extends LitElement {
-  @state() private currentImage: PhotoPrismPhoto | null = null;
-  @state() private hasCalendarEvents: boolean = false;
-  @state() private hasMediaPlayer: boolean = false;
-
-  // Configuration properties
-  @property({ type: String }) albumUid: string = '';
-  @property({ type: Number }) cacheSize: number = 10;
-  @property({ type: Number }) transitionDuration: number = 1000;
-  @property({ type: Boolean }) autoPlay: boolean = true;
-  @property({ type: Number }) slideDuration: number = 10000; // 10 seconds
-
-  static styles = css`
+    static styles = css`
     :host {
       display: block;
       width: 100%;
@@ -68,37 +57,29 @@ export class RootApp extends LitElement {
       to { transform: rotate(360deg); }
     }
   `;
+    // Configuration properties
+    @property({type: String}) albumUid: string = '';
+    @property({type: Number}) cacheSize: number = 10;
+    @property({type: Number}) transitionDuration: number = 1000;
+    @property({type: Boolean}) autoPlay: boolean = true;
+    @property({type: Number}) slideDuration: number = 10000; // 10 seconds
+    @state() private currentImage: PhotoPrismPhoto | null = null;
+    @state() private hasCalendarEvents: boolean = false;
+    @state() private hasMediaPlayer: boolean = false;
 
-  constructor() {
-    super();
-    // Hide the loading spinner when the component is fully loaded
-    window.addEventListener('load', () => {
-      const loadingElement = document.querySelector('.loading');
-      if (loadingElement) {
-        loadingElement.remove();
-      }
-    });
-  }
+    constructor() {
+        super();
+        // Hide the loading spinner when the component is fully loaded
+        window.addEventListener('load', () => {
+            const loadingElement = document.querySelector('.loading');
+            if (loadingElement) {
+                loadingElement.remove();
+            }
+        });
+    }
 
-  // Handle image change events from the slideshow core
-  private handleImageChange(e: CustomEvent) {
-    this.currentImage = e.detail.image;
-    this.requestUpdate();
-  }
-
-  // Check if calendar events or media player should be shown
-  private handleCalendarEventsChange(e: CustomEvent) {
-    this.hasCalendarEvents = e.detail.hasEvents;
-    this.requestUpdate();
-  }
-
-  private handleMediaPlayerChange(e: CustomEvent) {
-    this.hasMediaPlayer = e.detail.hasMedia;
-    this.requestUpdate();
-  }
-
-  render() {
-    return html`
+    render() {
+        return html`
 <!--      <div class="loading">-->
 <!--        <div class="loading-spinner"></div>-->
 <!--      </div>-->
@@ -118,5 +99,22 @@ export class RootApp extends LitElement {
 
       </photo-slideshow>
     `;
-  }
+    }
+
+    // Handle image change events from the slideshow core
+    private handleImageChange(e: CustomEvent) {
+        this.currentImage = e.detail.image;
+        this.requestUpdate();
+    }
+
+    // Check if calendar events or media player should be shown
+    private handleCalendarEventsChange(e: CustomEvent) {
+        this.hasCalendarEvents = e.detail.hasEvents;
+        this.requestUpdate();
+    }
+
+    private handleMediaPlayerChange(e: CustomEvent) {
+        this.hasMediaPlayer = e.detail.hasMedia;
+        this.requestUpdate();
+    }
 }
