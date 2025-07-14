@@ -1,19 +1,5 @@
-import photoPrismService from './photoprism-service';
-import {PhotoPrismPhoto} from '../types/photoprism.types';
-
-// Simple interface for photo display information
-interface PhotoDisplayInfo {
-    url: string;
-    location: string;
-    date: string;
-}
-
-// Interface for preloaded image
-interface PreloadedImage {
-    photo: PhotoPrismPhoto;
-    imageElement: HTMLImageElement;
-    loaded: boolean;
-}
+import {PhotoPrismPhoto} from "../types/photoprism.types";
+import {PhotoDisplayInfo, PhotoService} from "./photo-service";
 
 export class SlideshowService {
     private currentImage: PhotoPrismPhoto | null = null;
@@ -25,6 +11,7 @@ export class SlideshowService {
     private autoPlay: boolean = false;
     private slideDuration: number = 10000; // 10 seconds default
     private isPreloading: boolean = false;
+    private photoService = new PhotoService();
 
     async initialize(): Promise<void> {
         this.detectOrientation();
@@ -33,7 +20,7 @@ export class SlideshowService {
             this.detectOrientation();
         });
 
-        await photoPrismService.initialize();
+        await this.photoService.initialize();
         await this.loadRandomPhoto();
 
         // Preload the next image after the current one is loaded
@@ -67,12 +54,12 @@ export class SlideshowService {
 
     // Get the URL for the current image
     getCurrentImageUrl(): string | null {
-        return this.currentImage ? photoPrismService.getPhotoUrl(this.currentImage.Hash) : null;
+        return this.currentImage ? this.photoService.getPhotoUrl(this.currentImage.Hash) : null;
     }
 
     // Get the URL for the next image
     getNextImageUrl(): string | null {
-        return this.nextImage ? photoPrismService.getPhotoUrl(this.nextImage.Hash) : null;
+        return this.nextImage ? this.photoService.getPhotoUrl(this.nextImage.Hash) : null;
     }
 
     // Get display information for the current photo
@@ -80,7 +67,7 @@ export class SlideshowService {
         if (!this.currentImage) return null;
 
         return {
-            url: photoPrismService.getPhotoUrl(this.currentImage.Hash),
+            url: this.photoService.getPhotoUrl(this.currentImage.Hash),
             location: this.getPhotoLocation(this.currentImage),
             date: this.getPhotoDate(this.currentImage)
         };
@@ -91,7 +78,7 @@ export class SlideshowService {
         if (!this.nextImage) return null;
 
         return {
-            url: photoPrismService.getPhotoUrl(this.nextImage.Hash),
+            url: this.photoService.getPhotoUrl(this.nextImage.Hash),
             location: this.getPhotoLocation(this.nextImage),
             date: this.getPhotoDate(this.nextImage)
         };
@@ -147,7 +134,7 @@ export class SlideshowService {
 
             // Create and load the image element
             if (this.currentImage) {
-                const imageUrl = photoPrismService.getPhotoUrl(this.currentImage.Hash);
+                const imageUrl = this.photoService.getPhotoUrl(this.currentImage.Hash);
                 this.currentImageElement = new Image();
 
                 // Create a promise to wait for the image to load
@@ -188,7 +175,7 @@ export class SlideshowService {
 
             // Create and preload the next image element
             if (this.nextImage) {
-                const imageUrl = photoPrismService.getPhotoUrl(this.nextImage.Hash);
+                const imageUrl = this.photoService.getPhotoUrl(this.nextImage.Hash);
                 this.nextImageElement = new Image();
 
                 // Create a promise to wait for the image to load
@@ -214,7 +201,7 @@ export class SlideshowService {
 
     // Get a random photo from the service
     private async getRandomPhoto(): Promise<PhotoPrismPhoto[]> {
-        return await photoPrismService.getRandomPhotos(1, this.orientation);
+        return await this.photoService.getRandomPhotos(1, this.orientation);
     }
 
     // Extract location information from a photo

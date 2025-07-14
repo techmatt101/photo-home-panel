@@ -1,7 +1,8 @@
 import {registerSW} from 'virtual:pwa-register';
 import './components/root-app';
 // Create services directory structure
-import './services/photoprism-service';
+import './services/photoprism-api-service';
+import './services/photo-service';
 import './services/home-assistant-service';
 
 // Register service worker for PWA functionality
