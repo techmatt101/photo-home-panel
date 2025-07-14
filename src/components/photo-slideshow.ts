@@ -137,8 +137,6 @@ export class PhotoSlideshow extends LitElement {
     @state() private nextImageUrl: string | null = null;
     @state() private photoLocation: string | null = null;
     @state() private photoDate: string | null = null;
-    @state() private nextPhotoLocation: string | null = null;
-    @state() private nextPhotoDate: string | null = null;
     @state() private isTransitioning = false;
 
     private transitioning = false;
@@ -190,12 +188,8 @@ export class PhotoSlideshow extends LitElement {
         const nextPhotoInfo = this.slideshowService.getNextPhotoInfo();
         if (nextPhotoInfo) {
             this.nextImageUrl = nextPhotoInfo.url;
-            this.nextPhotoLocation = nextPhotoInfo.location;
-            this.nextPhotoDate = nextPhotoInfo.date;
         } else {
             this.nextImageUrl = this.slideshowService.getNextImageUrl();
-            this.nextPhotoLocation = null;
-            this.nextPhotoDate = null;
         }
     }
 
@@ -243,39 +237,29 @@ export class PhotoSlideshow extends LitElement {
     render() {
         return html`
             ${this.isLoading ? html`<loading-spinner></loading-spinner>` : ``}
-            <div class="slideshow-container">
-                ${this.imageUrl ? html`
-                    <div class="image-container ${this.isTransitioning ? 'previous' : 'current'}">
-                        <div class="image-background" style="background-image: url(${this.imageUrl})"></div>
-                        <img class="image" src="${this.imageUrl}" alt="Current photo"/>
-
-                        ${(this.photoLocation || this.photoDate) ? html`
-                            <div class="photo-info">
-                                ${this.photoLocation ? html`<p>📍 ${this.photoLocation}</p>` : ''}
-                                ${this.photoDate ? html`<p>📅 ${this.photoDate}</p>` : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                ` : ''}
-
-                ${this.nextImageUrl ? html`
-                    <div class="image-container ${this.isTransitioning ? 'current' : 'next'}">
-                        <div class="image-background" style="background-image: url(${this.nextImageUrl})"></div>
-                        <img class="image" src="${this.nextImageUrl}" alt="Next photo"/>
-
-                        ${(this.nextPhotoLocation || this.nextPhotoDate) ? html`
-                            <div class="photo-info">
-                                ${this.nextPhotoLocation ? html`<p>📍 ${this.nextPhotoLocation}</p>` : ''}
-                                ${this.nextPhotoDate ? html`<p>📅 ${this.nextPhotoDate}</p>` : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                ` : ''}
-
-                <div class="nav-buttons">
-                    <button class="nav-button" @click=${this.previousSlide}>❮</button>
-                    <button class="nav-button" @click=${this.nextSlide}>❯</button>
+            ${(this.photoLocation || this.photoDate) ? html`
+                <div class="photo-info">
+                    ${this.photoLocation ? html`<p>📍 ${this.photoLocation}</p>` : ''}
+                    ${this.photoDate ? html`<p>📅 ${this.photoDate}</p>` : ''}
                 </div>
+            ` : ''}
+            ${this.imageUrl ? html`
+                <div class="image-container ${this.isTransitioning ? 'previous' : 'current'}">
+                    <div class="image-background" style="background-image: url(${this.imageUrl})"></div>
+                    <img class="image" src="${this.imageUrl}" alt="Current photo"/>
+                </div>
+            ` : ''}
+
+            ${this.nextImageUrl ? html`
+                <div class="image-container ${this.isTransitioning ? 'current' : 'next'}">
+                    <div class="image-background" style="background-image: url(${this.nextImageUrl})"></div>
+                    <img class="image" src="${this.nextImageUrl}" alt="Next photo"/>
+                </div>
+            ` : ''}
+
+            <div class="nav-buttons">
+                <button class="nav-button" @click=${this.previousSlide}>❮</button>
+                <button class="nav-button" @click=${this.nextSlide}>❯</button>
             </div>
         `;
     }
