@@ -29,7 +29,7 @@ export class PhotoPrismApi {
 
     public async searchPhotos(params: PhotoSearchParams): Promise<PhotoPrismPhoto[]> {
         const search = new URLSearchParams(Object.entries(params));
-        const response = await fetch(`${this.config.baseUrl}/api/photoprism/v1/photos?${search.toString()}`, {
+        const response = await fetch(`/api/photoprism/v1/photos?${search.toString()}`, {
             method: 'GET',
             headers: this.getHeaders()
         });

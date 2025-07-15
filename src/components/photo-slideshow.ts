@@ -144,15 +144,12 @@ export class PhotoSlideshow extends LitElement {
 
     private _hammer: HammerManager | null = null;
 
-    async connectedCallback() {
+    public async connectedCallback() {
         super.connectedCallback();
 
         try {
-            // Initialize the slideshow service which will load the current image
-            // and preload the next image
             await slideshowService.initialize();
 
-            // Set up swipe gestures
             this._hammer = new Hammer(this);
             this._hammer.on('swipeleft', () => {
                 this.nextSlide();
@@ -161,7 +158,6 @@ export class PhotoSlideshow extends LitElement {
                 this.previousSlide();
             });
 
-            // Update the component with both current and next image info
             this.updatePhotoInfo();
         } catch (error) {
             console.error('Error initializing services:', error);
@@ -171,7 +167,6 @@ export class PhotoSlideshow extends LitElement {
     }
 
     private updatePhotoInfo() {
-        // Get current photo info
         const photoInfo = slideshowService.getCurrentPhotoInfo();
         if (photoInfo) {
             this.imageUrl = photoInfo.url;
@@ -183,7 +178,6 @@ export class PhotoSlideshow extends LitElement {
             this.photoDate = null;
         }
 
-        // Get next photo info
         const nextPhotoInfo = slideshowService.getNextPhotoInfo();
         if (nextPhotoInfo) {
             this.nextImageUrl = nextPhotoInfo.url;
@@ -215,18 +209,11 @@ export class PhotoSlideshow extends LitElement {
         this._transitioning = true;
         this.isTransitioning = true;
 
-        // Start the cross-fade animation
-        // The CSS will handle the actual animation based on the isTransitioning state
-
-        // Wait for the transition duration
         setTimeout(async () => {
-            // After the fade out, load the next image
             await callback();
             this.updatePhotoInfo();
 
-            // Wait a bit for the DOM to update
             setTimeout(() => {
-                // End the transition
                 this.isTransitioning = false;
                 this._transitioning = false;
             }, 50);

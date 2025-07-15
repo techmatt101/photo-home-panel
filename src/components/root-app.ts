@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 
 import './photo-slideshow';
 import './info-overlay';
@@ -8,10 +8,12 @@ import './media-player';
 import './calendar-events';
 import './control-buttons';
 import './login-dialog';
+import './loading-spinner';
+import { photoPrismApi } from "../state";
 
 @customElement('root-app')
 export class RootApp extends LitElement {
-    static styles = css`
+    public static styles = css`
         :host {
             display: block;
             width: 100%;
@@ -28,10 +30,19 @@ export class RootApp extends LitElement {
         }
     `;
 
+    @state() private _isLoading = false;
+
+    public async connectedCallback() {
+        super.connectedCallback();
+
+        this._isLoading = true;
+        await photoPrismApi.initialize();
+        this._isLoading = false;
+    }
+
     public render() {
         return html`
-            <login-dialog></login-dialog>
-            <photo-slideshow></photo-slideshow>
+            ${this._isLoading ? html`<loading-spinner></loading-spinner><login-dialog></login-dialog>` : html`<photo-slideshow></photo-slideshow>`}
         `;
     }
 }
