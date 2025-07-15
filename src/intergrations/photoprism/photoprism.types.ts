@@ -1,4 +1,3 @@
-// Types for PhotoPrism API responses
 export interface PhotoPrismPhoto {
     UID: string;
     Title: string;
@@ -41,20 +40,17 @@ export interface PhotoPrismAlbum {
     UpdatedAt: string;
 }
 
-// Configuration for PhotoPrism API
 export interface PhotoPrismConfig {
     baseUrl: string;
     apiKey: string;
 }
 
-// Response from PhotoPrism config endpoint
 export interface PhotoPrismConfigResponse {
     previewToken: string;
 
     [key: string]: any; // Allow for other properties in the response
 }
 
-// Search parameters for photos
 export interface PhotoSearchParams {
     q?: string;
     count?: number;

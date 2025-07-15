@@ -1,60 +1,45 @@
-import homeAssistantService from './home-assistant-service';
-import {MediaPlayerEntity} from '../types/home-assistant.types';
+import {MediaPlayerEntity} from '../intergrations/home-assistant/home-assistant.types';
+import { HomeAssistantApi } from "../intergrations/home-assistant/home-assistant-api";
 
-class MediaPlayerService {
-    private mediaStatus: MediaPlayerEntity | null = null;
-    private mediaSubscribers: ((mediaPlayer: MediaPlayerEntity | null) => void)[] = [];
+export class MediaPlayerService {
+    private _mediaStatus: MediaPlayerEntity | null = null;
+    private _mediaSubscribers: ((mediaPlayer: MediaPlayerEntity | null) => void)[] = [];
 
-    // Initialize the media player service
-    async initialize(): Promise<boolean> {
-        try {
-            // Initialize the Home Assistant service
-            const initialized = await homeAssistantService.initialize();
+    private _homeAssistantApi: HomeAssistantApi;
 
-            if (initialized) {
-                // Subscribe to media player updates from Home Assistant
-                homeAssistantService.subscribeMediaPlayer((mediaPlayer) => {
-                    this.mediaStatus = mediaPlayer;
-                    // Notify all subscribers
-                    this.notifySubscribers();
-                });
-                return true;
-            } else {
-                console.error('Failed to initialize Home Assistant service for media player');
-                return false;
-            }
-        } catch (error) {
-            console.error('Error initializing media player service:', error);
-            return false;
-        }
+    constructor(homeAssistantApi: HomeAssistantApi) {
+        this._homeAssistantApi = homeAssistantApi;
     }
 
-    // Get current media player status
-    getMediaStatus(): MediaPlayerEntity | null {
-        return this.mediaStatus;
+    public async initialize(): Promise<void> {
+        this._homeAssistantApi.subscribeMediaPlayer((mediaPlayer) => {
+            this._mediaStatus = mediaPlayer;
+            this.notifySubscribers();
+        });
     }
 
-    // Subscribe to media player updates
-    subscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity | null) => void): void {
-        this.mediaSubscribers.push(callback);
+    public getMediaStatus(): MediaPlayerEntity | null {
+        return this._mediaStatus;
+    }
+
+    public subscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity | null) => void): void {
+        this._mediaSubscribers.push(callback);
 
         // Immediately notify with current data if available
-        if (this.mediaStatus) {
-            callback(this.mediaStatus);
+        if (this._mediaStatus) {
+            callback(this._mediaStatus);
         }
     }
 
-    // Unsubscribe from media player updates
-    unsubscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity | null) => void): void {
-        this.mediaSubscribers = this.mediaSubscribers.filter(cb => cb !== callback);
+    public unsubscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity | null) => void): void {
+        this._mediaSubscribers = this._mediaSubscribers.filter(cb => cb !== callback);
     }
 
-    // Control media player
-    async mediaCommand(command: 'play' | 'pause' | 'next' | 'previous'): Promise<boolean> {
-        if (!this.mediaStatus) return false;
+    public async mediaCommand(command: 'play' | 'pause' | 'next' | 'previous'): Promise<boolean> {
+        if (!this._mediaStatus) return false;
 
         try {
-            await homeAssistantService.mediaPlayerCommand(
+            await this._homeAssistantApi.mediaPlayerCommand(
                 'media_player.spotify',
                 command
             );
@@ -65,33 +50,23 @@ class MediaPlayerService {
         }
     }
 
-    // Check if media is available
-    hasMedia(): boolean {
-        return this.mediaStatus !== null &&
-            this.mediaStatus.state !== 'off' &&
-            this.mediaStatus.state !== 'idle';
+    public hasMedia(): boolean {
+        return this._mediaStatus !== null &&
+            this._mediaStatus.state !== 'off' &&
+            this._mediaStatus.state !== 'idle';
     }
 
-    // Check if media is playing
-    isPlaying(): boolean {
-        return this.mediaStatus?.state === 'playing';
+    public isPlaying(): boolean {
+        return this._mediaStatus?.state === 'playing';
     }
 
-    // Clean up resources
-    dispose(): void {
-        this.mediaSubscribers = [];
+    public dispose(): void {
+        this._mediaSubscribers = [];
     }
 
-    // Notify all subscribers of media player updates
     private notifySubscribers(): void {
-        for (const callback of this.mediaSubscribers) {
-            callback(this.mediaStatus);
+        for (const callback of this._mediaSubscribers) {
+            callback(this._mediaStatus);
         }
     }
 }
-
-// Create a singleton instance
-export const mediaPlayerService = new MediaPlayerService();
-
-// Export the service
-export default mediaPlayerService;

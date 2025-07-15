@@ -1,7 +1,6 @@
-import {css, html, LitElement} from 'lit';
-import {customElement} from 'lit/decorators.js';
+import { css, html, LitElement } from 'lit';
+import { customElement } from 'lit/decorators.js';
 
-// Import sub-components
 import './photo-slideshow';
 import './info-overlay';
 import './time-weather';
@@ -29,7 +28,7 @@ export class RootApp extends LitElement {
         }
     `;
 
-    render() {
+    public render() {
         return html`
             <login-dialog></login-dialog>
             <photo-slideshow></photo-slideshow>

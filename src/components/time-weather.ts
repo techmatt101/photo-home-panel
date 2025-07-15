@@ -1,99 +1,97 @@
-import {css, html, LitElement} from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
-import {WeatherEntity} from '../types/home-assistant.types';
-import weatherService from '../services/weather-service';
-import timeService from '../services/time-service';
+import { css, html, LitElement } from 'lit';
+import { customElement, property, state } from 'lit/decorators.js';
+import { WeatherEntity } from '../intergrations/home-assistant/home-assistant.types';
+import { timeService, weatherService } from "../state";
 
 @customElement('time-weather')
 export class TimeWeather extends LitElement {
-    static styles = css`
-    :host {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--primary-color, #ffffff);
-    }
+    public static styles = css`
+        :host {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color, #ffffff);
+        }
 
-    .current-time {
-      font-size: 1.5rem;
-      font-weight: bold;
-      text-align: center;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-      margin: 0 20px;
-    }
+        .current-time {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+            margin: 0 20px;
+        }
 
-    /* Weather widget */
-    .weather-widget {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      cursor: pointer;
-      margin-left: 20px;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-      transition: transform 0.2s ease;
-    }
+        /* Weather widget */
 
-    .weather-widget:hover {
-      transform: scale(1.05);
-    }
+        .weather-widget {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            margin-left: 20px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+            transition: transform 0.2s ease;
+        }
 
-    .weather-condition {
-      font-size: 0.9rem;
-      margin-bottom: 5px;
-      text-transform: capitalize;
-    }
+        .weather-widget:hover {
+            transform: scale(1.05);
+        }
 
-    .weather-temp {
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
+        .weather-condition {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            text-transform: capitalize;
+        }
 
-    @media (max-width: 768px) {
-      .current-time {
-        margin: 10px 0;
-      }
+        .weather-temp {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
 
-      .weather-widget {
-        margin-left: 0;
-        flex-direction: row;
-        gap: 10px;
-      }
-    }
+        @media (max-width: 768px) {
+            .current-time {
+                margin: 10px 0;
+            }
 
-    @media (max-width: 480px) {
-      .current-time {
-        font-size: 1.2rem;
-      }
+            .weather-widget {
+                margin-left: 0;
+                flex-direction: row;
+                gap: 10px;
+            }
+        }
 
-      .weather-temp {
-        font-size: 1rem;
-      }
-    }
-  `;
-    @property({type: Boolean}) showWeather: boolean = true;
-    @property({type: Boolean}) showTime: boolean = true;
-    @state() private weatherData: WeatherEntity | null = null;
-    @state() private currentTime: Date = new Date();
+        @media (max-width: 480px) {
+            .current-time {
+                font-size: 1.2rem;
+            }
 
-    connectedCallback() {
+            .weather-temp {
+                font-size: 1rem;
+            }
+        }
+    `;
+    @property({type: Boolean}) public showWeather: boolean = true;
+    @property({type: Boolean}) public showTime: boolean = true;
+    @state() private _weatherData: WeatherEntity | null = null;
+    @state() private _currentTime: Date = new Date();
+
+    public connectedCallback() {
         super.connectedCallback();
 
-        // Initialize time service
         if (this.showTime) {
             timeService.initialize();
-            timeService.subscribeTime((time) => {
-                this.currentTime = time;
+            timeService.subscribeTime((time: Date) => {
+                this._currentTime = time;
                 this.requestUpdate();
             });
         }
 
-        // Initialize weather service
         if (this.showWeather) {
             this.initializeWeather();
         }
     }
 
-    disconnectedCallback() {
+    public disconnectedCallback() {
         super.disconnectedCallback();
 
         // Clean up services
@@ -101,50 +99,44 @@ export class TimeWeather extends LitElement {
         weatherService.dispose();
     }
 
-    render() {
+    public render() {
         return html`
-      ${this.showTime ? html`
-        <div class="current-time">
-          ${timeService.formatDate(this.currentTime)}
-        </div>
-      ` : ''}
+            ${this.showTime ? html`
+                <div class="current-time">
+                    ${timeService.formatDate(this._currentTime)}
+                </div>
+            ` : ''}
 
-      ${this.showWeather ? this.renderWeather() : ''}
-    `;
+            ${this.showWeather ? this.renderWeather() : ''}
+        `;
     }
 
     private async initializeWeather() {
         try {
-            // Initialize the weather service
-            const initialized = await weatherService.initialize();
+            await weatherService.initialize();
 
-            if (initialized) {
-                // Subscribe to weather updates
-                weatherService.subscribeWeather((weather) => {
-                    this.weatherData = weather;
-                    this.requestUpdate();
-                });
-            } else {
-                console.error('Failed to initialize weather service');
-            }
+            weatherService.subscribeWeather((weather: WeatherEntity | null) => {
+                this._weatherData = weather;
+                this.requestUpdate();
+            });
         } catch (error) {
             console.error('Error initializing weather service:', error);
         }
     }
 
-    // Render weather widget
     private renderWeather() {
-        if (!this.weatherData) {
-            return html`<div class="weather-temp">--°C</div>`;
+        if (!this._weatherData) {
+            return html`
+                <div class="weather-temp">--°C</div>`;
         }
 
-        const {state, attributes} = this.weatherData;
+        const {state, attributes} = this._weatherData;
 
         return html`
-      <div class="weather-widget" @click=${() => window.open('weather://stafford', '_blank')}>
-        <div class="weather-condition">${state}</div>
-        <div class="weather-temp">${attributes.temperature}°C</div>
-      </div>
-    `;
+            <div class="weather-widget" @click=${() => window.open('weather://stafford', '_blank')}>
+                <div class="weather-condition">${state}</div>
+                <div class="weather-temp">${attributes.temperature}°C</div>
+            </div>
+        `;
     }
 }

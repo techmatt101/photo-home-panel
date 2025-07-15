@@ -1,63 +1,46 @@
-import homeAssistantService from './home-assistant-service';
-import {MediaPlayerEntity} from '../types/home-assistant.types';
+import { MediaPlayerEntity } from '../intergrations/home-assistant/home-assistant.types';
+import { HomeAssistantApi } from "../intergrations/home-assistant/home-assistant-api";
 
-class ControlButtonsService {
-    private tvStatus: MediaPlayerEntity | null = null;
-    private tvSubscribers: ((tv: MediaPlayerEntity | null) => void)[] = [];
+export class ControlButtonsService {
+    private _tvStatus: MediaPlayerEntity | null = null;
+    private _tvSubscribers: ((tv: MediaPlayerEntity | null) => void)[] = [];
 
-    // Initialize the control buttons service
-    async initialize(): Promise<boolean> {
-        try {
-            // Initialize the Home Assistant service
-            const initialized = await homeAssistantService.initialize();
+    private _homeAssistantApi: HomeAssistantApi;
 
-            if (initialized) {
-                // Subscribe to TV updates from Home Assistant
-                homeAssistantService.subscribeTV((tv) => {
-                    this.tvStatus = tv;
-                    // Notify all subscribers
-                    this.notifySubscribers();
-                });
-                return true;
-            } else {
-                console.error('Failed to initialize Home Assistant service for TV status');
-                return false;
-            }
-        } catch (error) {
-            console.error('Error initializing control buttons service:', error);
-            return false;
+    constructor(homeAssistantApi: HomeAssistantApi) {
+        this._homeAssistantApi = homeAssistantApi;
+    }
+
+    public async initialize(): Promise<void> {
+        this._homeAssistantApi.subscribeTV((tv) => {
+            this._tvStatus = tv;
+            this.notifySubscribers();
+        });
+    }
+
+    public getTVStatus(): MediaPlayerEntity | null {
+        return this._tvStatus;
+    }
+
+    public isTVOn(): boolean {
+        return this._tvStatus !== null && this._tvStatus.state !== 'off';
+    }
+
+    public subscribeTV(callback: (tv: MediaPlayerEntity | null) => void): void {
+        this._tvSubscribers.push(callback);
+
+        if (this._tvStatus) {
+            callback(this._tvStatus);
         }
     }
 
-    // Get current TV status
-    getTVStatus(): MediaPlayerEntity | null {
-        return this.tvStatus;
+    public unsubscribeTV(callback: (tv: MediaPlayerEntity | null) => void): void {
+        this._tvSubscribers = this._tvSubscribers.filter(cb => cb !== callback);
     }
 
-    // Check if TV is on
-    isTVOn(): boolean {
-        return this.tvStatus !== null && this.tvStatus.state !== 'off';
-    }
-
-    // Subscribe to TV status updates
-    subscribeTV(callback: (tv: MediaPlayerEntity | null) => void): void {
-        this.tvSubscribers.push(callback);
-
-        // Immediately notify with current data if available
-        if (this.tvStatus) {
-            callback(this.tvStatus);
-        }
-    }
-
-    // Unsubscribe from TV status updates
-    unsubscribeTV(callback: (tv: MediaPlayerEntity | null) => void): void {
-        this.tvSubscribers = this.tvSubscribers.filter(cb => cb !== callback);
-    }
-
-    // Toggle a light
-    async toggleLight(entityId: string): Promise<boolean> {
+    public async toggleLight(entityId: string): Promise<boolean> {
         try {
-            await homeAssistantService.toggleLight(entityId);
+            await this._homeAssistantApi.toggleLight(entityId);
             return true;
         } catch (error) {
             console.error(`Failed to toggle light ${entityId}:`, error);
@@ -65,10 +48,9 @@ class ControlButtonsService {
         }
     }
 
-    // Start vacuum cleaner
-    async startVacuum(): Promise<boolean> {
+    public async startVacuum(): Promise<boolean> {
         try {
-            await homeAssistantService.startVacuum();
+            await this._homeAssistantApi.startVacuum();
             return true;
         } catch (error) {
             console.error('Failed to start vacuum:', error);
@@ -76,21 +58,13 @@ class ControlButtonsService {
         }
     }
 
-    // Clean up resources
-    dispose(): void {
-        this.tvSubscribers = [];
+    public dispose(): void {
+        this._tvSubscribers = [];
     }
 
-    // Notify all subscribers of TV status updates
     private notifySubscribers(): void {
-        for (const callback of this.tvSubscribers) {
-            callback(this.tvStatus);
+        for (const callback of this._tvSubscribers) {
+            callback(this._tvStatus);
         }
     }
 }
-
-// Create a singleton instance
-export const controlButtonsService = new ControlButtonsService();
-
-// Export the service
-export default controlButtonsService;

@@ -1,11 +1,11 @@
-import {css, html, LitElement} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import { css, html, LitElement } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
 import Hammer from 'hammerjs';
-import {SlideshowService} from "../services/slideshow-service";
+import { slideshowService } from "../state";
 
 @customElement('photo-slideshow')
 export class PhotoSlideshow extends LitElement {
-    static styles = css`
+    public static styles = css`
         :host {
             display: block;
             width: 100%;
@@ -70,6 +70,7 @@ export class PhotoSlideshow extends LitElement {
         }
 
         /* Photo info */
+
         .photo-info {
             position: absolute;
             bottom: 20px;
@@ -130,7 +131,6 @@ export class PhotoSlideshow extends LitElement {
         }
     `;
 
-    transitionDuration: number = 1000;
 
     @state() private isLoading = true;
     @state() private imageUrl: string | null = null;
@@ -139,10 +139,10 @@ export class PhotoSlideshow extends LitElement {
     @state() private photoDate: string | null = null;
     @state() private isTransitioning = false;
 
-    private transitioning = false;
+    private _transitioning = false;
+    private _transitionDuration: number = 1000;
 
-    private hammer: HammerManager | null = null;
-    private slideshowService: SlideshowService = new SlideshowService();
+    private _hammer: HammerManager | null = null;
 
     async connectedCallback() {
         super.connectedCallback();
@@ -150,14 +150,14 @@ export class PhotoSlideshow extends LitElement {
         try {
             // Initialize the slideshow service which will load the current image
             // and preload the next image
-            await this.slideshowService.initialize();
+            await slideshowService.initialize();
 
             // Set up swipe gestures
-            this.hammer = new Hammer(this);
-            this.hammer.on('swipeleft', () => {
+            this._hammer = new Hammer(this);
+            this._hammer.on('swipeleft', () => {
                 this.nextSlide();
             });
-            this.hammer.on('swiperight', () => {
+            this._hammer.on('swiperight', () => {
                 this.previousSlide();
             });
 
@@ -170,50 +170,49 @@ export class PhotoSlideshow extends LitElement {
         }
     }
 
-    // Update photo information from the service
     private updatePhotoInfo() {
         // Get current photo info
-        const photoInfo = this.slideshowService.getCurrentPhotoInfo();
+        const photoInfo = slideshowService.getCurrentPhotoInfo();
         if (photoInfo) {
             this.imageUrl = photoInfo.url;
             this.photoLocation = photoInfo.location;
             this.photoDate = photoInfo.date;
         } else {
-            this.imageUrl = this.slideshowService.getCurrentImageUrl();
+            this.imageUrl = slideshowService.getCurrentImageUrl();
             this.photoLocation = null;
             this.photoDate = null;
         }
 
         // Get next photo info
-        const nextPhotoInfo = this.slideshowService.getNextPhotoInfo();
+        const nextPhotoInfo = slideshowService.getNextPhotoInfo();
         if (nextPhotoInfo) {
             this.nextImageUrl = nextPhotoInfo.url;
         } else {
-            this.nextImageUrl = this.slideshowService.getNextImageUrl();
+            this.nextImageUrl = slideshowService.getNextImageUrl();
         }
     }
 
-    disconnectedCallback() {
+    public disconnectedCallback() {
         super.disconnectedCallback();
 
-        this.slideshowService.dispose();
-        if (this.hammer) {
-            this.hammer.destroy();
-            this.hammer = null;
+        slideshowService.dispose();
+        if (this._hammer) {
+            this._hammer.destroy();
+            this._hammer = null;
         }
     }
 
-    nextSlide() {
-        this.transitionToNextImage(() => this.slideshowService.advanceImage());
+    public nextSlide() {
+        this.transitionToNextImage(() => slideshowService.advanceImage());
     }
 
-    previousSlide() {
-        this.transitionToNextImage(() => this.slideshowService.previousImage());
+    public previousSlide() {
+        this.transitionToNextImage(() => slideshowService.previousImage());
     }
 
     private async transitionToNextImage(callback: () => Promise<unknown>) {
-        if (this.transitioning) return;
-        this.transitioning = true;
+        if (this._transitioning) return;
+        this._transitioning = true;
         this.isTransitioning = true;
 
         // Start the cross-fade animation
@@ -229,14 +228,15 @@ export class PhotoSlideshow extends LitElement {
             setTimeout(() => {
                 // End the transition
                 this.isTransitioning = false;
-                this.transitioning = false;
+                this._transitioning = false;
             }, 50);
-        }, this.transitionDuration);
+        }, this._transitionDuration);
     }
 
-    render() {
+    public render() {
         return html`
-            ${this.isLoading ? html`<loading-spinner></loading-spinner>` : ``}
+            ${this.isLoading ? html`
+                <loading-spinner></loading-spinner>` : ``}
             ${(this.photoLocation || this.photoDate) ? html`
                 <div class="photo-info">
                     ${this.photoLocation ? html`<p>📍 ${this.photoLocation}</p>` : ''}

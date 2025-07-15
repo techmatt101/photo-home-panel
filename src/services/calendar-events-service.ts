@@ -1,43 +1,30 @@
-import homeAssistantService from './home-assistant-service';
-import {CalendarEntity} from '../types/home-assistant.types';
+import { CalendarEntity } from '../intergrations/home-assistant/home-assistant.types';
+import { HomeAssistantApi } from "../intergrations/home-assistant/home-assistant-api";
 
-class CalendarEventsService {
-    private calendarEvents: CalendarEntity[] = [];
-    private eventsSubscribers: ((events: CalendarEntity[]) => void)[] = [];
+export class CalendarEventsService {
+    private _calendarEvents: CalendarEntity[] = [];
+    private _eventsSubscribers: ((events: CalendarEntity[]) => void)[] = [];
+    private _homeAssistantApi: HomeAssistantApi;
 
-    // Initialize the calendar events service
-    async initialize(): Promise<boolean> {
-        try {
-            // Initialize the Home Assistant service
-            const initialized = await homeAssistantService.initialize();
-
-            if (initialized) {
-                // Get calendar events
-                await this.loadCalendarEvents();
-                return true;
-            } else {
-                console.error('Failed to initialize Home Assistant service for calendar events');
-                return false;
-            }
-        } catch (error) {
-            console.error('Error initializing calendar events service:', error);
-            return false;
-        }
+    constructor(homeAssistantApi: HomeAssistantApi) {
+        this._homeAssistantApi = homeAssistantApi;
     }
 
-    // Get all calendar events
-    getAllEvents(): CalendarEntity[] {
-        return this.calendarEvents;
+    public async initialize(): Promise<void> {
+        await this.loadCalendarEvents();
     }
 
-    // Get upcoming events (today and tomorrow)
-    getUpcomingEvents(): CalendarEntity[] {
-        if (this.calendarEvents.length === 0) {
+    public getAllEvents(): CalendarEntity[] {
+        return this._calendarEvents;
+    }
+
+    public getUpcomingEvents(): CalendarEntity[] {
+        if (this._calendarEvents.length === 0) {
             return [];
         }
 
         // Sort events by start time
-        const sortedEvents = [...this.calendarEvents].sort((a, b) => {
+        const sortedEvents = [...this._calendarEvents].sort((a, b) => {
             return new Date(a.attributes.start_time).getTime() - new Date(b.attributes.start_time).getTime();
         });
 
@@ -53,41 +40,35 @@ class CalendarEventsService {
         });
     }
 
-    // Check if there are upcoming events
-    hasUpcomingEvents(): boolean {
+    public hasUpcomingEvents(): boolean {
         return this.getUpcomingEvents().length > 0;
     }
 
-    // Format event time
-    formatEventTime(dateString: string, locale: string = 'en-GB'): string {
+    public formatEventTime(dateString: string, locale: string = 'en-GB'): string {
         const date = new Date(dateString);
         return date.toLocaleTimeString(locale, {hour: '2-digit', minute: '2-digit'});
     }
 
-    // Subscribe to calendar events updates
-    subscribeEvents(callback: (events: CalendarEntity[]) => void): void {
-        this.eventsSubscribers.push(callback);
+    public subscribeEvents(callback: (events: CalendarEntity[]) => void): void {
+        this._eventsSubscribers.push(callback);
 
         // Immediately notify with current data if available
-        if (this.calendarEvents.length > 0) {
+        if (this._calendarEvents.length > 0) {
             callback(this.getUpcomingEvents());
         }
     }
 
-    // Unsubscribe from calendar events updates
-    unsubscribeEvents(callback: (events: CalendarEntity[]) => void): void {
-        this.eventsSubscribers = this.eventsSubscribers.filter(cb => cb !== callback);
+    public unsubscribeEvents(callback: (events: CalendarEntity[]) => void): void {
+        this._eventsSubscribers = this._eventsSubscribers.filter(cb => cb !== callback);
     }
 
-    // Clean up resources
-    dispose(): void {
-        this.eventsSubscribers = [];
+    public dispose(): void {
+        this._eventsSubscribers = [];
     }
 
-    // Load calendar events from Home Assistant
     private async loadCalendarEvents(): Promise<void> {
         try {
-            this.calendarEvents = await homeAssistantService.getCalendarEvents();
+            this._calendarEvents = await this._homeAssistantApi.getCalendarEvents();
             // Notify all subscribers
             this.notifySubscribers();
         } catch (error) {
@@ -95,17 +76,10 @@ class CalendarEventsService {
         }
     }
 
-    // Notify all subscribers of calendar events updates
     private notifySubscribers(): void {
         const upcomingEvents = this.getUpcomingEvents();
-        for (const callback of this.eventsSubscribers) {
+        for (const callback of this._eventsSubscribers) {
             callback(upcomingEvents);
         }
     }
 }
-
-// Create a singleton instance
-export const calendarEventsService = new CalendarEventsService();
-
-// Export the service
-export default calendarEventsService;

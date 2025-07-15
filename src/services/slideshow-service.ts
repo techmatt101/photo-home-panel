@@ -1,126 +1,121 @@
-import {PhotoPrismPhoto} from "../types/photoprism.types";
-import {PhotoDisplayInfo, PhotoService} from "./photo-service";
+import { PhotoPrismPhoto } from "../intergrations/photoprism/photoprism.types";
+import { PhotoDisplayInfo, PhotoService } from "./photo-service";
 
 export class SlideshowService {
-    private currentImage: PhotoPrismPhoto | null = null;
-    private nextImage: PhotoPrismPhoto | null = null;
-    private currentImageElement: HTMLImageElement | null = null;
-    private nextImageElement: HTMLImageElement | null = null;
-    private orientation: 'landscape' | 'portrait' = 'landscape';
-    private autoPlayTimer: number | null = null;
-    private autoPlay: boolean = false;
-    private slideDuration: number = 10000; // 10 seconds default
-    private isPreloading: boolean = false;
-    private photoService = new PhotoService();
+    private _currentImage: PhotoPrismPhoto | null = null;
+    private _nextImage: PhotoPrismPhoto | null = null;
+    private _currentImageElement: HTMLImageElement | null = null;
+    private _nextImageElement: HTMLImageElement | null = null;
+    private _orientation: 'landscape' | 'portrait' = 'landscape';
+    private _autoPlayTimer: number | null = null;
+    private _autoPlay: boolean = false;
+    private _slideDuration: number = 10000; // 10 seconds default
+    private _isPreloading: boolean = false;
+    private _photoService: PhotoService;
 
-    async initialize(): Promise<void> {
+    constructor(photoService: PhotoService) {
+        this._photoService = photoService;
+    }
+
+    public async initialize(): Promise<void> {
         this.detectOrientation();
 
         window.addEventListener('resize', () => {
             this.detectOrientation();
         });
 
-        await this.photoService.initialize();
+        await this._photoService.initialize();
         await this.loadRandomPhoto();
 
         // Preload the next image after the current one is loaded
         await this.preloadNextImage();
     }
 
-    // Get the current orientation
-    getOrientation(): 'landscape' | 'portrait' {
-        return this.orientation;
+    // // Get the current orientation
+    // getOrientation(): 'landscape' | 'portrait' {
+    //     return this._orientation;
+    // }
+    //
+    // // Get the current image
+    // getCurrentImage(): PhotoPrismPhoto | null {
+    //     return this._currentImage;
+    // }
+    //
+    // // Get the next image
+    // getNextImage(): PhotoPrismPhoto | null {
+    //     return this._nextImage;
+    // }
+    //
+    // // Get the current image element
+    // getCurrentImageElement(): HTMLImageElement | null {
+    //     return this._currentImageElement;
+    // }
+    //
+    // // Get the next image element
+    // getNextImageElement(): HTMLImageElement | null {
+    //     return this._nextImageElement;
+    // }
+
+    public getCurrentImageUrl(): string | null {
+        return this._currentImage ? this._photoService.getPhotoUrl(this._currentImage.Hash) : null;
     }
 
-    // Get the current image
-    getCurrentImage(): PhotoPrismPhoto | null {
-        return this.currentImage;
+    public getNextImageUrl(): string | null {
+        return this._nextImage ? this._photoService.getPhotoUrl(this._nextImage.Hash) : null;
     }
 
-    // Get the next image
-    getNextImage(): PhotoPrismPhoto | null {
-        return this.nextImage;
-    }
-
-    // Get the current image element
-    getCurrentImageElement(): HTMLImageElement | null {
-        return this.currentImageElement;
-    }
-
-    // Get the next image element
-    getNextImageElement(): HTMLImageElement | null {
-        return this.nextImageElement;
-    }
-
-    // Get the URL for the current image
-    getCurrentImageUrl(): string | null {
-        return this.currentImage ? this.photoService.getPhotoUrl(this.currentImage.Hash) : null;
-    }
-
-    // Get the URL for the next image
-    getNextImageUrl(): string | null {
-        return this.nextImage ? this.photoService.getPhotoUrl(this.nextImage.Hash) : null;
-    }
-
-    // Get display information for the current photo
-    getCurrentPhotoInfo(): PhotoDisplayInfo | null {
-        if (!this.currentImage) return null;
+    public getCurrentPhotoInfo(): PhotoDisplayInfo | null {
+        if (!this._currentImage) return null;
 
         return {
-            url: this.photoService.getPhotoUrl(this.currentImage.Hash),
-            location: this.getPhotoLocation(this.currentImage),
-            date: this.getPhotoDate(this.currentImage)
+            url: this._photoService.getPhotoUrl(this._currentImage.Hash),
+            location: this.getPhotoLocation(this._currentImage),
+            date: this.getPhotoDate(this._currentImage)
         };
     }
 
-    // Get display information for the next photo
-    getNextPhotoInfo(): PhotoDisplayInfo | null {
-        if (!this.nextImage) return null;
+    public getNextPhotoInfo(): PhotoDisplayInfo | null {
+        if (!this._nextImage) return null;
 
         return {
-            url: this.photoService.getPhotoUrl(this.nextImage.Hash),
-            location: this.getPhotoLocation(this.nextImage),
-            date: this.getPhotoDate(this.nextImage)
+            url: this._photoService.getPhotoUrl(this._nextImage.Hash),
+            location: this.getPhotoLocation(this._nextImage),
+            date: this.getPhotoDate(this._nextImage)
         };
     }
 
-    // Move to the next image
-    async advanceImage(): Promise<PhotoPrismPhoto | null> {
+    public async advanceImage(): Promise<PhotoPrismPhoto | null> {
         // If we have a preloaded next image, use it
-        if (this.nextImage && this.nextImageElement) {
+        if (this._nextImage && this._nextImageElement) {
             // Current becomes previous
-            this.currentImage = this.nextImage;
-            this.currentImageElement = this.nextImageElement;
+            this._currentImage = this._nextImage;
+            this._currentImageElement = this._nextImageElement;
 
             // Clear next image references
-            this.nextImage = null;
-            this.nextImageElement = null;
+            this._nextImage = null;
+            this._nextImageElement = null;
 
             // Start preloading the next image
             this.preloadNextImage();
 
-            return this.currentImage;
+            return this._currentImage;
         } else {
             // Fallback to loading a new random photo
             await this.loadRandomPhoto();
             this.preloadNextImage();
-            return this.currentImage;
+            return this._currentImage;
         }
     }
 
-    // Move to the previous image (same as next in simplified version)
-    async previousImage(): Promise<PhotoPrismPhoto | null> {
+    public async previousImage(): Promise<PhotoPrismPhoto | null> {
         // In this simplified version, previous is the same as next
         return this.advanceImage();
     }
 
-    // Detect device orientation
     private detectOrientation() {
-        // Determine if the device is in landscape or portrait mode
-        this.orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+        this._orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
     }
 
-    // Get a random photo and create an Image object for it
     private async loadRandomPhoto(): Promise<void> {
         try {
             const photos = await this.getRandomPhoto();
@@ -130,22 +125,22 @@ export class SlideshowService {
                 return;
             }
 
-            this.currentImage = photos[0];
+            this._currentImage = photos[0];
 
             // Create and load the image element
-            if (this.currentImage) {
-                const imageUrl = this.photoService.getPhotoUrl(this.currentImage.Hash);
-                this.currentImageElement = new Image();
+            if (this._currentImage) {
+                const imageUrl = this._photoService.getPhotoUrl(this._currentImage.Hash);
+                this._currentImageElement = new Image();
 
                 // Create a promise to wait for the image to load
                 await new Promise<void>((resolve, reject) => {
-                    if (this.currentImageElement) {
-                        this.currentImageElement.onload = () => resolve();
-                        this.currentImageElement.onerror = () => {
+                    if (this._currentImageElement) {
+                        this._currentImageElement.onload = () => resolve();
+                        this._currentImageElement.onerror = () => {
                             console.error('Error loading image');
                             reject(new Error('Failed to load image'));
                         };
-                        this.currentImageElement.src = imageUrl;
+                        this._currentImageElement.src = imageUrl;
                     } else {
                         reject(new Error('Image element is null'));
                     }
@@ -156,37 +151,36 @@ export class SlideshowService {
         }
     }
 
-    // Preload the next image
     private async preloadNextImage(): Promise<void> {
-        if (this.isPreloading) return;
+        if (this._isPreloading) return;
 
-        this.isPreloading = true;
+        this._isPreloading = true;
 
         try {
             const photos = await this.getRandomPhoto();
 
             if (photos.length === 0) {
                 console.error('No photos found for preloading');
-                this.isPreloading = false;
+                this._isPreloading = false;
                 return;
             }
 
-            this.nextImage = photos[0];
+            this._nextImage = photos[0];
 
             // Create and preload the next image element
-            if (this.nextImage) {
-                const imageUrl = this.photoService.getPhotoUrl(this.nextImage.Hash);
-                this.nextImageElement = new Image();
+            if (this._nextImage) {
+                const imageUrl = this._photoService.getPhotoUrl(this._nextImage.Hash);
+                this._nextImageElement = new Image();
 
                 // Create a promise to wait for the image to load
                 await new Promise<void>((resolve) => {
-                    if (this.nextImageElement) {
-                        this.nextImageElement.onload = () => resolve();
-                        this.nextImageElement.onerror = () => {
+                    if (this._nextImageElement) {
+                        this._nextImageElement.onload = () => resolve();
+                        this._nextImageElement.onerror = () => {
                             console.error('Error preloading next image');
                             resolve(); // Resolve anyway to continue
                         };
-                        this.nextImageElement.src = imageUrl;
+                        this._nextImageElement.src = imageUrl;
                     } else {
                         resolve(); // Resolve anyway to continue
                     }
@@ -195,16 +189,14 @@ export class SlideshowService {
         } catch (error) {
             console.error('Error preloading next photo:', error);
         } finally {
-            this.isPreloading = false;
+            this._isPreloading = false;
         }
     }
 
-    // Get a random photo from the service
     private async getRandomPhoto(): Promise<PhotoPrismPhoto[]> {
-        return await this.photoService.getRandomPhotos(1, this.orientation);
+        return await this._photoService.getRandomPhotos(1, this._orientation);
     }
 
-    // Extract location information from a photo
     private getPhotoLocation(photo: PhotoPrismPhoto): string {
         if (photo.PlaceID) {
             return photo.PlaceID;
@@ -216,7 +208,6 @@ export class SlideshowService {
         return 'Unknown location';
     }
 
-    // Format the photo date
     private getPhotoDate(photo: PhotoPrismPhoto): string {
         if (photo.TakenAtLocal) {
             const date = new Date(photo.TakenAtLocal);
@@ -225,71 +216,67 @@ export class SlideshowService {
         return 'Unknown date';
     }
 
-    // Start auto-play
-    startAutoPlay(): void {
+    public startAutoPlay(): void {
         // Clear any existing timer
         this.stopAutoPlay();
 
         // Set a timer to advance to the next slide
-        this.autoPlayTimer = window.setTimeout(async () => {
+        this._autoPlayTimer = window.setTimeout(async () => {
             await this.advanceImage();
 
             // Restart the timer after advancing
-            if (this.autoPlay) {
+            if (this._autoPlay) {
                 this.startAutoPlay();
             }
-        }, this.slideDuration);
+        }, this._slideDuration);
     }
 
-    // Stop auto-play
-    stopAutoPlay(): void {
-        if (this.autoPlayTimer) {
-            window.clearTimeout(this.autoPlayTimer);
-            this.autoPlayTimer = null;
+    public stopAutoPlay(): void {
+        if (this._autoPlayTimer) {
+            window.clearTimeout(this._autoPlayTimer);
+            this._autoPlayTimer = null;
         }
     }
 
-    // Toggle auto-play
-    toggleAutoPlay(): boolean {
-        this.autoPlay = !this.autoPlay;
+    // // Toggle auto-play
+    // toggleAutoPlay(): boolean {
+    //     this._autoPlay = !this._autoPlay;
+    //
+    //     if (this._autoPlay) {
+    //         this.startAutoPlay();
+    //     } else {
+    //         this.stopAutoPlay();
+    //     }
+    //
+    //     return this._autoPlay;
+    // }
+    //
+    // // Set slide duration
+    // setSlideDuration(duration: number): void {
+    //     this._slideDuration = duration;
+    //
+    //     // Restart auto-play with new duration if it's currently active
+    //     if (this._autoPlay && this._autoPlayTimer) {
+    //         this.startAutoPlay();
+    //     }
+    // }
+    //
+    // // Get current auto-play status
+    // isAutoPlayEnabled(): boolean {
+    //     return this._autoPlay;
+    // }
+    //
+    // // Get current slide duration
+    // getSlideDuration(): number {
+    //     return this._slideDuration;
+    // }
 
-        if (this.autoPlay) {
-            this.startAutoPlay();
-        } else {
-            this.stopAutoPlay();
-        }
-
-        return this.autoPlay;
-    }
-
-    // Set slide duration
-    setSlideDuration(duration: number): void {
-        this.slideDuration = duration;
-
-        // Restart auto-play with new duration if it's currently active
-        if (this.autoPlay && this.autoPlayTimer) {
-            this.startAutoPlay();
-        }
-    }
-
-    // Get current auto-play status
-    isAutoPlayEnabled(): boolean {
-        return this.autoPlay;
-    }
-
-    // Get current slide duration
-    getSlideDuration(): number {
-        return this.slideDuration;
-    }
-
-    // Clean up resources
-    dispose(): void {
+    public dispose(): void {
         this.stopAutoPlay();
 
-        // Clear image references to allow garbage collection
-        this.currentImage = null;
-        this.nextImage = null;
-        this.currentImageElement = null;
-        this.nextImageElement = null;
+        this._currentImage = null;
+        this._nextImage = null;
+        this._currentImageElement = null;
+        this._nextImageElement = null;
     }
 }
