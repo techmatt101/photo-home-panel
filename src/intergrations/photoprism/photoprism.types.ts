@@ -63,3 +63,8 @@ export interface PhotoSearchParams {
     quality?: number;
     orientation?: string;
 }
+
+export interface PhotoAlbumParams {
+    count?: number;
+    category?: string;
+}

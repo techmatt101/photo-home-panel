@@ -1,8 +1,8 @@
 import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { photoPrismApi } from "../state";
-import { Slideshow } from "../services/slideshow";
-import { nextImage, PhotoInfo } from "../services/photo-service";
+import { Slideshow, SlideshowImage } from "../services/slideshow";
+import { nextImage } from "../services/photo-service";
 
 @customElement('photo-slideshow')
 export class PhotoSlideshow extends LitElement {
@@ -34,7 +34,7 @@ export class PhotoSlideshow extends LitElement {
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: opacity var(--transition-duration) ease-in-out;
+            transition: opacity 1s ease-in-out;
         }
 
         .image-container.current {
@@ -135,18 +135,26 @@ export class PhotoSlideshow extends LitElement {
 
     @state() private _isLoading = true;
     @state() private _nextImageUrl: string | null = null;
-    @state() private _photoInfo: PhotoInfo | null = null;
+    @state() private _image: SlideshowImage | null = null;
     @state() private _isTransitioning = false;
 
     private _transitioning = false;
     private _transitionDuration: number = 1000;
-    private _slideshow: Slideshow = new Slideshow(nextImage(photoPrismApi))
+    private _slideshow: Slideshow;
+    
+    constructor() {
+        super();
+        const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+        this._slideshow = new Slideshow(nextImage(photoPrismApi, orientation));
+        
+        // window.addEventListener('resize', this._handleResize.bind(this));
+    }
 
     public async connectedCallback() {
         super.connectedCallback();
 
         this._slideshow.image.subscribe((photoInfo) => {
-            this._photoInfo = photoInfo;
+            this._image = photoInfo;
         })
 
         try {
@@ -198,16 +206,16 @@ export class PhotoSlideshow extends LitElement {
         return html`
             ${this._isLoading ? html`
                 <loading-spinner></loading-spinner>` : ``}
-            ${this._photoInfo ? html`
+            ${this._image ? html`
                 <div class="photo-info">
-                    <p>📍 ${this._photoInfo.location}</p>
-                    <p>📅 ${this._photoInfo.date}</p>
+                    <p>📍 ${this._image.meta.location}</p>
+                    <p>📅 ${this._image.meta.date}</p>
                 </div>
             ` : ''}
-            ${this._photoInfo ? html`
+            ${this._image ? html`
                 <div class="image-container ${this._isTransitioning ? 'previous' : 'current'}">
-                    <div class="image-background" style="background-image: url(${this._photoInfo.url})"></div>
-                    <img class="image" src="${this._photoInfo.url}" alt="Current photo"/>
+                    <div class="image-background" style="background-image: url(${this._image.meta.url})"></div>
+                    <img class="image" src="${this._image.meta.url}" alt="Current photo"/>
                 </div>
             ` : ''}
 

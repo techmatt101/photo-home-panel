@@ -1,4 +1,4 @@
-import { PhotoPrismAlbum, PhotoPrismConfig, PhotoPrismConfigResponse, PhotoPrismPhoto, PhotoSearchParams } from './photoprism.types';
+import { PhotoAlbumParams, PhotoPrismAlbum, PhotoPrismConfig, PhotoPrismConfigResponse, PhotoPrismPhoto, PhotoSearchParams } from './photoprism.types';
 
 export class PhotoPrismApi {
     private _options: PhotoPrismConfig;
@@ -45,8 +45,9 @@ export class PhotoPrismApi {
         return `/api/photoprism/v1/t/${hash}/${this._config!.previewToken}/${size}`;
     }
 
-    public async getAlbums(): Promise<PhotoPrismAlbum[]> {
-        const response = await fetch(`/api/photoprism/v1/albums`, {
+    public async getAlbums(params: PhotoAlbumParams): Promise<PhotoPrismAlbum[]> {
+        const search = new URLSearchParams(Object.entries(params));
+        const response = await fetch(`/api/photoprism/v1/albums?${search}`, {
             method: 'GET',
             headers: this.getHeaders()
         });
