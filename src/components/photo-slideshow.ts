@@ -1,7 +1,8 @@
 import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import Hammer from 'hammerjs';
-import { slideshowService } from "../state";
+import { photoPrismApi } from "../state";
+import { Slideshow } from "../services/slideshow";
+import { nextImage, PhotoInfo } from "../services/photo-service";
 
 @customElement('photo-slideshow')
 export class PhotoSlideshow extends LitElement {
@@ -132,89 +133,62 @@ export class PhotoSlideshow extends LitElement {
     `;
 
 
-    @state() private isLoading = true;
-    @state() private imageUrl: string | null = null;
-    @state() private nextImageUrl: string | null = null;
-    @state() private photoLocation: string | null = null;
-    @state() private photoDate: string | null = null;
-    @state() private isTransitioning = false;
+    @state() private _isLoading = true;
+    @state() private _nextImageUrl: string | null = null;
+    @state() private _photoInfo: PhotoInfo | null = null;
+    @state() private _isTransitioning = false;
 
     private _transitioning = false;
     private _transitionDuration: number = 1000;
-
-    private _hammer: HammerManager | null = null;
+    private _slideshow: Slideshow = new Slideshow(nextImage(photoPrismApi))
 
     public async connectedCallback() {
         super.connectedCallback();
 
+        this._slideshow.image.subscribe((photoInfo) => {
+            this._photoInfo = photoInfo;
+        })
+
         try {
-            await slideshowService.initialize();
+            await this._slideshow.nextImage();
 
-            this._hammer = new Hammer(this);
-            this._hammer.on('swipeleft', () => {
-                this.nextSlide();
-            });
-            this._hammer.on('swiperight', () => {
-                this.previousSlide();
-            });
+            // this._hammer = new Hammer(this);
+            // this._hammer.on('swipeleft', () => {
+            //     this.nextSlide();
+            // });
+            // this._hammer.on('swiperight', () => {
+            //     this.previousSlide();
+            // });
 
-            this.updatePhotoInfo();
         } catch (error) {
             console.error('Error initializing services:', error);
         } finally {
-            this.isLoading = false;
-        }
-    }
-
-    private updatePhotoInfo() {
-        const photoInfo = slideshowService.getCurrentPhotoInfo();
-        if (photoInfo) {
-            this.imageUrl = photoInfo.url;
-            this.photoLocation = photoInfo.location;
-            this.photoDate = photoInfo.date;
-        } else {
-            this.imageUrl = slideshowService.getCurrentImageUrl();
-            this.photoLocation = null;
-            this.photoDate = null;
-        }
-
-        const nextPhotoInfo = slideshowService.getNextPhotoInfo();
-        if (nextPhotoInfo) {
-            this.nextImageUrl = nextPhotoInfo.url;
-        } else {
-            this.nextImageUrl = slideshowService.getNextImageUrl();
+            this._isLoading = false;
         }
     }
 
     public disconnectedCallback() {
         super.disconnectedCallback();
-
-        slideshowService.dispose();
-        if (this._hammer) {
-            this._hammer.destroy();
-            this._hammer = null;
-        }
     }
 
     public nextSlide() {
-        this.transitionToNextImage(() => slideshowService.advanceImage());
+        this.transitionToNextImage(() => this._slideshow.nextImage());
     }
 
     public previousSlide() {
-        this.transitionToNextImage(() => slideshowService.previousImage());
+        this.transitionToNextImage(() => this._slideshow.prevImage());
     }
 
     private async transitionToNextImage(callback: () => Promise<unknown>) {
         if (this._transitioning) return;
         this._transitioning = true;
-        this.isTransitioning = true;
+        this._isTransitioning = true;
 
         setTimeout(async () => {
             await callback();
-            this.updatePhotoInfo();
 
             setTimeout(() => {
-                this.isTransitioning = false;
+                this._isTransitioning = false;
                 this._transitioning = false;
             }, 50);
         }, this._transitionDuration);
@@ -222,25 +196,25 @@ export class PhotoSlideshow extends LitElement {
 
     public render() {
         return html`
-            ${this.isLoading ? html`
+            ${this._isLoading ? html`
                 <loading-spinner></loading-spinner>` : ``}
-            ${(this.photoLocation || this.photoDate) ? html`
+            ${this._photoInfo ? html`
                 <div class="photo-info">
-                    ${this.photoLocation ? html`<p>📍 ${this.photoLocation}</p>` : ''}
-                    ${this.photoDate ? html`<p>📅 ${this.photoDate}</p>` : ''}
+                    <p>📍 ${this._photoInfo.location}</p>
+                    <p>📅 ${this._photoInfo.date}</p>
                 </div>
             ` : ''}
-            ${this.imageUrl ? html`
-                <div class="image-container ${this.isTransitioning ? 'previous' : 'current'}">
-                    <div class="image-background" style="background-image: url(${this.imageUrl})"></div>
-                    <img class="image" src="${this.imageUrl}" alt="Current photo"/>
+            ${this._photoInfo ? html`
+                <div class="image-container ${this._isTransitioning ? 'previous' : 'current'}">
+                    <div class="image-background" style="background-image: url(${this._photoInfo.url})"></div>
+                    <img class="image" src="${this._photoInfo.url}" alt="Current photo"/>
                 </div>
             ` : ''}
 
-            ${this.nextImageUrl ? html`
-                <div class="image-container ${this.isTransitioning ? 'current' : 'next'}">
-                    <div class="image-background" style="background-image: url(${this.nextImageUrl})"></div>
-                    <img class="image" src="${this.nextImageUrl}" alt="Next photo"/>
+            ${this._nextImageUrl ? html`
+                <div class="image-container ${this._isTransitioning ? 'current' : 'next'}">
+                    <div class="image-background" style="background-image: url(${this._nextImageUrl})"></div>
+                    <img class="image" src="${this._nextImageUrl}" alt="Next photo"/>
                 </div>
             ` : ''}
 

@@ -133,7 +133,7 @@ export class TimeWeather extends LitElement {
         const {state, attributes} = this._weatherData;
 
         return html`
-            <div class="weather-widget" @click=${() => window.open('weather://stafford', '_blank')}>
+            <div class="weather-widget" @click=${() => open('weather://stafford', '_blank')}>
                 <div class="weather-condition">${state}</div>
                 <div class="weather-temp">${attributes.temperature}°C</div>
             </div>

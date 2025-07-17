@@ -47,8 +47,6 @@ export interface PhotoPrismConfig {
 
 export interface PhotoPrismConfigResponse {
     previewToken: string;
-
-    [key: string]: any; // Allow for other properties in the response
 }
 
 export interface PhotoSearchParams {

@@ -35,9 +35,12 @@ export class RootApp extends LitElement {
     public async connectedCallback() {
         super.connectedCallback();
 
-        this._isLoading = true;
+        // this._isLoading = true;
+        // setTimeout(() => {
+        //     authService.requestAuth('photoprism', 'nooo')
+        // });
         await photoPrismApi.initialize();
-        this._isLoading = false;
+        // this._isLoading = false;
     }
 
     public render() {

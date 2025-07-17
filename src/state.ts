@@ -7,8 +7,6 @@ import { ControlButtonsService } from "./services/control-buttons-service";
 import { MediaPlayerService } from "./services/media-player-service";
 import { WeatherService } from "./services/weather-service";
 import { TimeService } from "./services/time-service";
-import { SlideshowService } from "./services/slideshow-service";
-import { PhotoService } from "./services/photo-service";
 
 export const authService = new AuthService();
 
@@ -23,5 +21,3 @@ export const controlButtonsService = new ControlButtonsService(homeAssistantApi)
 export const mediaPlayerService = new MediaPlayerService(homeAssistantApi);
 export const timeService = new TimeService();
 export const weatherService = new WeatherService(homeAssistantApi);
-
-export const slideshowService = new SlideshowService(new PhotoService(photoPrismApi));

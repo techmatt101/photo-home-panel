@@ -169,7 +169,6 @@ export class AuthService {
     }
 
     private handleAuthRequired(event: CustomEvent<AuthRequiredEventDetail>): void {
-        // This is handled by the login-dialog component
         console.log(`Authentication required for ${event.detail.type}`);
     }
 

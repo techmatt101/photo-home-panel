@@ -1,5 +1,5 @@
-import {css, html, LitElement} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import { css, html, LitElement } from 'lit';
+import { customElement, state } from 'lit/decorators.js';
 import { AuthConfig, AuthFormField, AuthRequiredEventDetail, EVENT_AUTH_FAILURE, EVENT_AUTH_REQUIRED, EVENT_AUTH_SUCCESS } from "../services/auth-service";
 import { authService } from "../state";
 
@@ -201,50 +201,50 @@ export class LoginDialog extends LitElement {
     }
 
     public render() {
-        console.log('render', this._formFields, this._open);
         const serviceName = this._authType ? authService.getServiceName(this._authType) : '';
 
         return html`
-      <div class="overlay ${this._open ? 'open' : ''}">
-        <div class="dialog">
-          <div class="dialog-header">
-            <h2 class="dialog-title">
-              ${serviceName} Login
-            </h2>
-            ${this._message ? html`<p class="dialog-message">${this._message}</p>` : ''}
-          </div>
+            <div class="overlay ${this._open ? 'open' : ''}">
+                <div class="dialog">
+                    <div class="dialog-header">
+                        <h2 class="dialog-title">
+                            ${serviceName} Login
+                        </h2>
+                        ${this._message ? html`<p class="dialog-message">${this._message}</p>` : ''}
+                    </div>
 
-          <form @submit=${this.handleSubmit}>
-            <div class="dialog-content">
-              ${this.renderForm()}
+                    <form @submit=${this.handleSubmit}>
+                        <div class="dialog-content">
+                            ${this.renderForm()}
 
-              ${this._error ? html`<div class="error-message">${this._error}</div>` : ''}
+                            ${this._error ? html`
+                                <div class="error-message">${this._error}</div>` : ''}
+                        </div>
+
+                        <div class="dialog-footer">
+                            <button
+                                type="button"
+                                class="secondary"
+                                @click=${this.handleCancel}
+                                ?disabled=${this._loading}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                class="primary"
+                                ?disabled=${this._loading}
+                            >
+                                ${this._loading
+                                    ? html`<span class="loading-spinner"></span> Connecting...`
+                                    : 'Connect'
+                                }
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-
-            <div class="dialog-footer">
-              <button 
-                type="button" 
-                class="secondary" 
-                @click=${this.handleCancel}
-                ?disabled=${this._loading}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                class="primary"
-                ?disabled=${this._loading}
-              >
-                ${this._loading
-            ? html`<span class="loading-spinner"></span> Connecting...`
-            : 'Connect'
-        }
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    `;
+        `;
     }
 
     private handleAuthRequired(event: CustomEvent<AuthRequiredEventDetail>) {
@@ -260,13 +260,12 @@ export class LoginDialog extends LitElement {
         }
 
         this._formFields = authService.getFormFields(this._authType);
-        console.log('formFields', this._formFields);
 
-        const config = authService.getConfig(this._authType) as any;
+        const config = authService.getConfig<any>(this._authType);
         this._formValues = {};
 
         for (const field of this._formFields) {
-            this._formValues[field.id] = config[field.id] || '';
+            this._formValues[field.id] = config ? config[field.id] || '' : '';
         }
 
         this._open = true;
@@ -325,25 +324,25 @@ export class LoginDialog extends LitElement {
 
     private renderFormField(field: AuthFormField) {
         return html`
-      <div class="form-group">
-        <label for="${field.id}">${field.label}</label>
-        <input 
-          type="${field.type}" 
-          id="${field.id}" 
-          .value=${this._formValues[field.id] || ''}
-          @input=${(e: InputEvent) => this._formValues[field.id] = (e.target as HTMLInputElement).value}
-          placeholder="${field.placeholder || ''}"
-          ?disabled=${this._loading}
-          ?required=${field.required}
-        >
-        ${field.helpText ? html`<p>${field.helpText}</p>` : ''}
-      </div>
-    `;
+            <div class="form-group">
+                <label for="${field.id}">${field.label}</label>
+                <input
+                    type="${field.type}"
+                    id="${field.id}"
+                    .value=${this._formValues[field.id] || ''}
+                    @input=${(e: InputEvent) => this._formValues[field.id] = (e.target as HTMLInputElement).value}
+                    placeholder="${field.placeholder || ''}"
+                    ?disabled=${this._loading}
+                    ?required=${field.required}
+                >
+                ${field.helpText ? html`<p>${field.helpText}</p>` : ''}
+            </div>
+        `;
     }
 
     private renderForm() {
         return html`
-      ${this._formFields.map(field => this.renderFormField(field))}
-    `;
+            ${this._formFields.map(field => this.renderFormField(field))}
+        `;
     }
 }
