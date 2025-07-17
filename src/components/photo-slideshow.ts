@@ -134,19 +134,19 @@ export class PhotoSlideshow extends LitElement {
 
 
     @state() private _isLoading = true;
-    @state() private _nextImageUrl: string | null = null;
+    @state() private _nextImage: SlideshowImage | null = null;
     @state() private _image: SlideshowImage | null = null;
     @state() private _isTransitioning = false;
 
     private _transitioning = false;
     private _transitionDuration: number = 1000;
     private _slideshow: Slideshow;
-    
+
     constructor() {
         super();
         const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
         this._slideshow = new Slideshow(nextImage(photoPrismApi, orientation));
-        
+
         // window.addEventListener('resize', this._handleResize.bind(this));
     }
 
@@ -154,8 +154,19 @@ export class PhotoSlideshow extends LitElement {
         super.connectedCallback();
 
         this._slideshow.image.subscribe((photoInfo) => {
-            this._image = photoInfo;
-        })
+            if (!this._image) {
+                // First image load - no transition needed
+                this._image = photoInfo;
+            } else if (!this._transitioning) {
+                // Auto-play image change - apply transition
+                this.transitionToNextImage(() => {
+                    this._nextImage = photoInfo;
+                    return Promise.resolve();
+                });
+            }
+        });
+
+        this._slideshow.autoPlay(1000 * 5).subscribe();
 
         try {
             await this._slideshow.nextImage();
@@ -195,9 +206,23 @@ export class PhotoSlideshow extends LitElement {
         setTimeout(async () => {
             await callback();
 
+            // For manual navigation (button clicks)
+            if (this._nextImage === null && this._slideshow) {
+                // Wait for the slideshow to update the image
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            // Update the current image with the next image after transition
+            if (this._nextImage) {
+                this._image = this._nextImage;
+                this._nextImage = null;
+            }
+
             setTimeout(() => {
                 this._isTransitioning = false;
                 this._transitioning = false;
+                // Clear the next image URL after transition is complete
+                this._nextImage = null;
             }, 50);
         }, this._transitionDuration);
     }
@@ -209,7 +234,7 @@ export class PhotoSlideshow extends LitElement {
             ${this._image ? html`
                 <div class="photo-info">
                     <p>📍 ${this._image.meta.location}</p>
-                    <p>📅 ${this._image.meta.date}</p>
+                    <p>📅 ${this._image.meta.date.toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
                 </div>
             ` : ''}
             ${this._image ? html`
@@ -219,10 +244,10 @@ export class PhotoSlideshow extends LitElement {
                 </div>
             ` : ''}
 
-            ${this._nextImageUrl ? html`
+            ${this._nextImage ? html`
                 <div class="image-container ${this._isTransitioning ? 'current' : 'next'}">
-                    <div class="image-background" style="background-image: url(${this._nextImageUrl})"></div>
-                    <img class="image" src="${this._nextImageUrl}" alt="Next photo"/>
+                    <div class="image-background" style="background-image: url(${this._nextImage.meta.url})"></div>
+                    <img class="image" src="${this._nextImage.meta.url}" alt="Next photo"/>
                 </div>
             ` : ''}
 
