@@ -1,6 +1,7 @@
 import { callService, Connection, createConnection, subscribeEntities } from 'home-assistant-js-websocket';
-import { CalendarEntity, HomeAssistantConfig, MediaPlayerEntity, WeatherEntity } from './home-assistant.types';
+import { CalendarEntity, HomeAssistantConfig, MediaPlayerEntity } from './home-assistant.types';
 import { createLongLivedTokenAuth } from "home-assistant-js-websocket/dist/auth";
+import { BehaviorSubject, map, Observable } from 'rxjs';
 
 export class HomeAssistantApi {
     private _config: HomeAssistantConfig;
@@ -8,6 +9,10 @@ export class HomeAssistantApi {
     private _entities: Record<string, any> = {};
     private _entityListeners: Map<string, Set<(entity: any) => void>> = new Map();
     private _connectionPromise: Promise<Connection> | null = null;
+
+    // RxJS Subjects for entities
+    private _entitiesSubject: BehaviorSubject<Record<string, any>> = new BehaviorSubject<Record<string, any>>({});
+    private _entitySubjects: Map<string, BehaviorSubject<any>> = new Map();
 
     constructor(config: HomeAssistantConfig) {
         this._config = config;
@@ -17,8 +22,18 @@ export class HomeAssistantApi {
         await this.connect();
         subscribeEntities(this._connection!, (entities) => {
             this._entities = entities;
+            this._entitiesSubject.next(entities);
 
+            console.log(entities);
             for (const [entityId, entity] of Object.entries(entities)) {
+                // Update RxJS subjects
+                if (!this._entitySubjects.has(entityId)) {
+                    this._entitySubjects.set(entityId, new BehaviorSubject(entity));
+                } else {
+                    this._entitySubjects.get(entityId)!.next(entity);
+                }
+
+                // Legacy callback support
                 const listeners = this._entityListeners.get(entityId);
                 if (listeners) {
                     for (const listener of listeners) {
@@ -48,6 +63,29 @@ export class HomeAssistantApi {
         return this._connectionPromise;
     }
 
+    /**
+     * Returns an Observable that emits all entities
+     */
+    public entities$(): Observable<Record<string, any>> {
+        return this._entitiesSubject.asObservable();
+    }
+
+    /**
+     * Returns an Observable that emits a specific entity
+     */
+    public entity$<T>(entityId: string): Observable<T> {
+        // Create the subject if it doesn't exist
+        if (!this._entitySubjects.has(entityId)) {
+            this._entitySubjects.set(entityId, new BehaviorSubject<any>(this._entities[entityId] || null));
+        }
+
+        return this._entitySubjects.get(entityId)!.asObservable() as Observable<T>;
+    }
+
+    /**
+     * Legacy method for subscribing to an entity with a callback
+     * @deprecated Use entity$() instead
+     */
     public subscribeEntity<T>(entityId: string, callback: (entity: T) => void): () => void {
         if (!this._entityListeners.has(entityId)) {
             this._entityListeners.set(entityId, new Set());
@@ -60,7 +98,11 @@ export class HomeAssistantApi {
             callback(this._entities[entityId] as T);
         }
 
+        // Use the Observable internally for consistency
+        const subscription = this.entity$<T>(entityId).subscribe(callback);
+
         return () => {
+            subscription.unsubscribe();
             const listeners = this._entityListeners.get(entityId);
             if (listeners) {
                 listeners.delete(callback as any);
@@ -71,13 +113,21 @@ export class HomeAssistantApi {
         };
     }
 
-    public async getWeather(entityId: string = 'weather.home'): Promise<WeatherEntity | null> {
-        await this.connect();
-        return this._entities[entityId] as WeatherEntity || null;
-    }
-
-    public subscribeWeather(callback: (weather: WeatherEntity) => void, entityId: string = 'weather.home'): () => void {
-        return this.subscribeEntity<WeatherEntity>(entityId, callback);
+    /**
+     * Returns an Observable that emits calendar entities
+     */
+    public calendarEvents$(): Observable<CalendarEntity[]> {
+        return this.entities$().pipe(
+            map(entities => {
+                const calendarEntities: CalendarEntity[] = [];
+                for (const [entityId, entity] of Object.entries(entities)) {
+                    if (entityId.startsWith('calendar.')) {
+                        calendarEntities.push(entity as CalendarEntity);
+                    }
+                }
+                return calendarEntities;
+            })
+        );
     }
 
     public async getCalendarEvents(): Promise<CalendarEntity[]> {
@@ -93,13 +143,31 @@ export class HomeAssistantApi {
         return calendarEntities;
     }
 
+    /**
+     * Returns an Observable that emits media player entity updates
+     */
+    public mediaPlayer$(entityId: string = 'media_player.spotify'): Observable<MediaPlayerEntity> {
+        return this.entity$<MediaPlayerEntity>(entityId);
+    }
+
     public async getMediaPlayerStatus(entityId: string = 'media_player.spotify'): Promise<MediaPlayerEntity | null> {
         await this.connect();
         return this._entities[entityId] as MediaPlayerEntity || null;
     }
 
+    /**
+     * Legacy method for subscribing to media player updates with a callback
+     * @deprecated Use mediaPlayer$() instead
+     */
     public subscribeMediaPlayer(callback: (mediaPlayer: MediaPlayerEntity) => void, entityId: string = 'media_player.spotify'): () => void {
         return this.subscribeEntity<MediaPlayerEntity>(entityId, callback);
+    }
+
+    /**
+     * Returns an Observable that emits TV entity updates
+     */
+    public tv$(entityId: string = 'media_player.tv'): Observable<MediaPlayerEntity> {
+        return this.entity$<MediaPlayerEntity>(entityId);
     }
 
     public async getTVStatus(entityId: string = 'media_player.tv'): Promise<MediaPlayerEntity | null> {
@@ -107,6 +175,10 @@ export class HomeAssistantApi {
         return this._entities[entityId] as MediaPlayerEntity || null;
     }
 
+    /**
+     * Legacy method for subscribing to TV updates with a callback
+     * @deprecated Use tv$() instead
+     */
     public subscribeTV(callback: (tv: MediaPlayerEntity) => void, entityId: string = 'media_player.tv'): () => void {
         return this.subscribeEntity<MediaPlayerEntity>(entityId, callback);
     }

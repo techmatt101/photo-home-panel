@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 import { WeatherEntity } from '../intergrations/home-assistant/home-assistant.types';
 import { weatherService } from "../state";
 import { minuteSync } from "../services/time-service";
@@ -88,13 +88,15 @@ export class TimeWeather extends LitElement {
             this._currentTime = time;
         });
 
-        this.initializeWeather();
+        weatherService.weatherData$.subscribe(weather => {
+            this._weatherData = weather;
+            console.log('weather', weather);
+        });
     }
 
     public disconnectedCallback() {
         super.disconnectedCallback();
 
-        weatherService.dispose();
     }
 
 
@@ -106,19 +108,6 @@ export class TimeWeather extends LitElement {
 
             ${this.renderWeather()}
         `;
-    }
-
-    private async initializeWeather() {
-        try {
-            await weatherService.initialize();
-
-            weatherService.subscribeWeather((weather: WeatherEntity | null) => {
-                this._weatherData = weather;
-                this.requestUpdate();
-            });
-        } catch (error) {
-            console.error('Error initializing weather service:', error);
-        }
     }
 
     private renderWeather() {
