@@ -1,6 +1,7 @@
 import { css, html, LitElement } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 import { mediaPlayerService } from "../state";
+import { MediaPlayerEntity } from "../intergrations/home-assistant/home-assistant.types";
 
 @customElement('media-player')
 export class MediaPlayer extends LitElement {
@@ -58,66 +59,38 @@ export class MediaPlayer extends LitElement {
         }
     `;
 
+    @state() private _model: MediaPlayerEntity;
+
     public connectedCallback() {
         super.connectedCallback();
-        this.initializeMediaPlayer();
+
+        mediaPlayerService.currentlyPlayer.subscribe((model) => {
+            this._model = model;
+        })
     }
 
     public disconnectedCallback() {
         super.disconnectedCallback();
-
-        // Clean up service
-        mediaPlayerService.dispose();
     }
 
     public  render() {
-        const hasMedia = mediaPlayerService.hasMedia();
-
-        // Dispatch event to notify parent components about media availability
-        this.dispatchEvent(new CustomEvent('has-media', {detail: {hasMedia}}));
-
-        if (!hasMedia) {
-            return null;
-        }
-
-        const mediaStatus = mediaPlayerService.getMediaStatus();
-        const isPlaying = mediaPlayerService.isPlaying();
-
-        if (!mediaStatus) {
-            return null;
-        }
-
-        const {attributes} = mediaStatus;
-
         return html`
             <div class="media-status">
                 <div class="media-info">
-                    ${attributes.media_title ? html`
-                        <div class="media-title">${attributes.media_title}</div>` : ''}
-                    ${attributes.media_artist ? html`
-                        <div class="media-artist">${attributes.media_artist}</div>` : ''}
+                    ${this._model.attributes.media_title ? html`
+                        <div class="media-title">${this._model.attributes.media_title}</div>` : ''}
+                    ${this._model.attributes.media_artist ? html`
+                        <div class="media-artist">${this._model.attributes.media_artist}</div>` : ''}
                 </div>
                 <div class="media-controls">
                     <button class="media-button" @click=${() => this.mediaCommand('previous')}>⏮</button>
-                    <button class="media-button" @click=${() => this.mediaCommand(isPlaying ? 'pause' : 'play')}>
-                        ${isPlaying ? '⏸' : '▶'}
+                    <button class="media-button" @click=${() => this.mediaCommand(this._model.state ? 'pause' : 'play')}>
+                        ${this._model.state ? '⏸' : '▶'}
                     </button>
                     <button class="media-button" @click=${() => this.mediaCommand('next')}>⏭</button>
                 </div>
             </div>
         `;
-    }
-
-    private async initializeMediaPlayer() {
-        try {
-            await mediaPlayerService.initialize();
-
-            mediaPlayerService.subscribeMediaPlayer(() => {
-                this.requestUpdate();
-            });
-        } catch (error) {
-            console.error('Error initializing media player service:', error);
-        }
     }
 
     private async mediaCommand(command: 'play' | 'pause' | 'next' | 'previous') {

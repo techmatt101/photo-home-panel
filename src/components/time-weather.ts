@@ -90,7 +90,6 @@ export class TimeWeather extends LitElement {
 
         weatherService.weatherData$.subscribe(weather => {
             this._weatherData = weather;
-            console.log('weather', weather);
         });
     }
 

@@ -5,10 +5,7 @@ import { Observable } from "rxjs";
 export class WeatherService {
     public weatherData$: Observable<WeatherEntity>;
 
-    private _homeAssistantApi: HomeAssistantApi;
-
     constructor(homeAssistantApi: HomeAssistantApi) {
-        this._homeAssistantApi = homeAssistantApi;
-        this.weatherData$ = this._homeAssistantApi.entity$<WeatherEntity>('weather.forecast_home');
+        this.weatherData$ = homeAssistantApi.entity$<WeatherEntity>('weather.forecast_home');
     }
 }

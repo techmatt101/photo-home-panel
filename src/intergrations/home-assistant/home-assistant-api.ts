@@ -10,7 +10,6 @@ export class HomeAssistantApi {
     private _entityListeners: Map<string, Set<(entity: any) => void>> = new Map();
     private _connectionPromise: Promise<Connection> | null = null;
 
-    // RxJS Subjects for entities
     private _entitiesSubject: BehaviorSubject<Record<string, any>> = new BehaviorSubject<Record<string, any>>({});
     private _entitySubjects: Map<string, BehaviorSubject<any>> = new Map();
 
