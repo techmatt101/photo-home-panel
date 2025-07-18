@@ -1,7 +1,8 @@
 import { css, html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { WeatherEntity } from '../intergrations/home-assistant/home-assistant.types';
-import { timeService, weatherService } from "../state";
+import { weatherService } from "../state";
+import { minuteSync } from "../services/time-service";
 
 @customElement('time-weather')
 export class TimeWeather extends LitElement {
@@ -70,44 +71,40 @@ export class TimeWeather extends LitElement {
             }
         }
     `;
-    @property({type: Boolean}) public showWeather: boolean = true;
-    @property({type: Boolean}) public showTime: boolean = true;
     @state() private _weatherData: WeatherEntity | null = null;
     @state() private _currentTime: Date = new Date();
+
+    private _dateTimeFormater = new Intl.DateTimeFormat('en-GB', {
+        dateStyle: 'short',
+        timeStyle: 'short'
+    });
+
+    private _time$ = minuteSync()
 
     public connectedCallback() {
         super.connectedCallback();
 
-        if (this.showTime) {
-            timeService.initialize();
-            timeService.subscribeTime((time: Date) => {
-                this._currentTime = time;
-                this.requestUpdate();
-            });
-        }
+        this._time$.subscribe(time => {
+            this._currentTime = time;
+        });
 
-        if (this.showWeather) {
-            this.initializeWeather();
-        }
+        this.initializeWeather();
     }
 
     public disconnectedCallback() {
         super.disconnectedCallback();
 
-        // Clean up services
-        timeService.dispose();
         weatherService.dispose();
     }
 
+
     public render() {
         return html`
-            ${this.showTime ? html`
-                <div class="current-time">
-                    ${timeService.formatDate(this._currentTime)}
-                </div>
-            ` : ''}
+            <div class="current-time">
+                ${this._dateTimeFormater.format(this._currentTime)}
+            </div>
 
-            ${this.showWeather ? this.renderWeather() : ''}
+            ${this.renderWeather()}
         `;
     }
 

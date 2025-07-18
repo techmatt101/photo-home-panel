@@ -2,7 +2,7 @@ import { PhotoAlbumParams, PhotoPrismAlbum, PhotoPrismConfig, PhotoPrismConfigRe
 
 export class PhotoPrismApi {
     private _options: PhotoPrismConfig;
-    private _config: PhotoPrismConfigResponse | null = null;
+    private _photoConfig: PhotoPrismConfigResponse | null = null;
 
     constructor(config: PhotoPrismConfig) {
         this._options = config;
@@ -24,7 +24,7 @@ export class PhotoPrismApi {
             throw new Error('Failed to verify API key');
         }
 
-        this._config = data;
+        this._photoConfig = data;
     }
 
     public async searchPhotos(params: PhotoSearchParams): Promise<PhotoPrismPhoto[]> {
@@ -42,7 +42,7 @@ export class PhotoPrismApi {
     }
 
     public getPhotoUrl(hash: string, size: 'thumb' | 'fit_720' | 'fit_1280' | 'fit_1920' | 'fit_2048' | 'fit_2560' | 'fit_3840' | 'original' = 'fit_1920'): string {
-        return `/api/photoprism/v1/t/${hash}/${this._config!.previewToken}/${size}`;
+        return `/api/photoprism/v1/t/${hash}/${this._photoConfig!.previewToken}/${size}`;
     }
 
     public async getAlbums(params: PhotoAlbumParams): Promise<PhotoPrismAlbum[]> {

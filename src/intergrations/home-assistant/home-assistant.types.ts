@@ -78,7 +78,7 @@ export interface VacuumEntity {
 // Configuration for Home Assistant API
 export interface HomeAssistantConfig {
     url: string;
-    accessToken?: string;
+    accessToken: string;
 }
 
 // Saved authentication data

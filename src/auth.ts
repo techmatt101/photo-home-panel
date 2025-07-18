@@ -1,4 +1,4 @@
-import { AuthService, AuthServiceRegistration } from "./services/auth-service";
+import { AuthService, AuthServiceRegistration } from "./services/auth.service";
 
 export const PHOTOPRISM = 'photoprism';
 export const HOMEASSISTANT = 'homeassistant';
@@ -43,10 +43,10 @@ export function registerHomeAssistantAuth(authService: AuthService) {
             },
             {
                 id: 'accessToken',
-                label: 'Long-lived Access Token (optional)',
+                label: 'Long-lived Access Token',
                 type: 'password',
                 placeholder: 'Enter your access token',
-                required: false,
+                required: true,
                 helpText: 'If you don\'t provide an access token, you\'ll be redirected to the Home Assistant login page.'
             }
         ]

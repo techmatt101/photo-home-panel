@@ -1,6 +1,6 @@
 import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { AuthConfig, AuthFormField, AuthRequiredEventDetail, EVENT_AUTH_FAILURE, EVENT_AUTH_REQUIRED, EVENT_AUTH_SUCCESS } from "../services/auth-service";
+import { AuthConfig, AuthFormField, AuthRequiredEventDetail, EVENT_AUTH_FAILURE, EVENT_AUTH_REQUIRED, EVENT_AUTH_SUCCESS } from "../services/auth.service";
 import { authService } from "../state";
 
 @customElement('login-dialog')
