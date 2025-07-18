@@ -1,7 +1,7 @@
 import { AuthService } from "./services/auth-service";
 import { CalendarEventsService } from "./services/calendar-events-service";
 import { HomeAssistantApi } from "./intergrations/home-assistant/home-assistant-api";
-import { registerHomeAssistantAuth, registerPhotoPrismAuth } from "./auth";
+import { registerPhotoPrismAuth } from "./auth";
 import { PhotoPrismApi } from "./intergrations/photoprism/photo-prism-api";
 import { ControlButtonsService } from "./services/control-buttons-service";
 import { MediaPlayerService } from "./services/media-player-service";
@@ -11,7 +11,7 @@ import { TimeService } from "./services/time-service";
 export const authService = new AuthService();
 
 registerPhotoPrismAuth(authService);
-registerHomeAssistantAuth(authService);
+// registerHomeAssistantAuth(authService);
 
 export const homeAssistantApi = new HomeAssistantApi(authService.getConfig('homeassistant')!);
 export const photoPrismApi = new PhotoPrismApi(authService.getConfig('photoprism')!);

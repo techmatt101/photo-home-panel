@@ -14,19 +14,13 @@ export class PhotoSlideshow extends LitElement {
             position: relative;
             overflow: hidden;
             background-color: #000;
-            --transition-duration: 1s;
-        }
-
-        .slideshow-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
+            --a: 0%;
         }
 
         /* Image containers and transitions */
 
         .image-container {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -34,20 +28,8 @@ export class PhotoSlideshow extends LitElement {
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: opacity 1s ease-in-out;
         }
-
-        .image-container.current {
-            opacity: 1;
-            z-index: 2;
-        }
-
-        .image-container.next,
-        .image-container.previous {
-            opacity: 0;
-            z-index: 1;
-        }
-
+        
         .image-background {
             position: absolute;
             top: 0;
@@ -56,22 +38,34 @@ export class PhotoSlideshow extends LitElement {
             height: 100%;
             background-size: cover;
             background-position: center;
-            filter: blur(20px);
+            filter: blur(20px) brightness(0.5);
             transform: scale(1.1);
-            opacity: 0.5;
         }
 
         .image {
-            max-width: 100%;
-            max-height: 100%;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             z-index: 1;
             position: relative;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
+        //
+        //img {
+        //    mask: radial-gradient(#000 70%, #0000 71%) content-box 50% / var(--_s, 150% 150%) no-repeat, linear-gradient(#000 0 0);
+        //    mask-composite: exclude;
+        //    transition: .5s;
+        //}
+        //
+        //img:hover {
+        //    --_s: 0% 0%;
+        //}
 
-        /* Photo info */
-
+        .next-image {
+            mask: linear-gradient(90deg, #0000 calc(var(--a) - 5%), #000 var(--a));
+            mask-composite: exclude;
+        }
+        
         .photo-info {
             position: absolute;
             bottom: 20px;
@@ -114,7 +108,8 @@ export class PhotoSlideshow extends LitElement {
             cursor: pointer;
             margin: 0 20px;
             font-size: 24px;
-            transition: background-color 0.2s ease, transform 0.2s ease;
+            transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.5s ease;
+            opacity: 0;
         }
 
         .nav-button:hover {
@@ -130,6 +125,22 @@ export class PhotoSlideshow extends LitElement {
                 margin: 0 10px;
             }
         }
+        
+        @keyframes fadeIn2 {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        :host(:hover) {
+            .nav-button {
+                opacity: 1;
+            }
+        }
+
     `;
 
 
@@ -139,7 +150,6 @@ export class PhotoSlideshow extends LitElement {
     @state() private _isTransitioning = false;
 
     private _transitioning = false;
-    private _transitionDuration: number = 1000;
     private _slideshow: Slideshow;
 
     constructor() {
@@ -154,19 +164,21 @@ export class PhotoSlideshow extends LitElement {
         super.connectedCallback();
 
         this._slideshow.image.subscribe((photoInfo) => {
-            if (!this._image) {
-                // First image load - no transition needed
-                this._image = photoInfo;
-            } else if (!this._transitioning) {
-                // Auto-play image change - apply transition
-                this.transitionToNextImage(() => {
-                    this._nextImage = photoInfo;
-                    return Promise.resolve();
-                });
-            }
+            this.transitionToNextImage(photoInfo);
+            // this._image = photoInfo;
+            // if (!this._image) {
+            //     // First image load - no transition needed
+            //     this._image = photoInfo;
+            // } else if (!this._transitioning) {
+            //     // Auto-play image change - apply transition
+            //     this.transitionToNextImage(() => {
+            //         this._nextImage = photoInfo;
+            //         return Promise.resolve();
+            //     });
+            // }
         });
 
-        this._slideshow.autoPlay(1000 * 5).subscribe();
+        // this._slideshow.autoPlay(1000 * 5).subscribe();
 
         try {
             await this._slideshow.nextImage();
@@ -191,40 +203,43 @@ export class PhotoSlideshow extends LitElement {
     }
 
     public nextSlide() {
-        this.transitionToNextImage(() => this._slideshow.nextImage());
+        this._slideshow.nextImage();
     }
 
     public previousSlide() {
-        this.transitionToNextImage(() => this._slideshow.prevImage());
+        this._slideshow.prevImage();
     }
 
-    private async transitionToNextImage(callback: () => Promise<unknown>) {
-        if (this._transitioning) return;
-        this._transitioning = true;
-        this._isTransitioning = true;
+    private async transitionToNextImage(photoInfo: SlideshowImage) {
+        // if (this._transitioning) return;
+        if(!this._image) {
+            this._image = photoInfo;
+            return;
+        }
+        this._nextImage = photoInfo;
 
-        setTimeout(async () => {
-            await callback();
+        this.animateWipe(this);
 
-            // For manual navigation (button clicks)
-            if (this._nextImage === null && this._slideshow) {
-                // Wait for the slideshow to update the image
-                await new Promise(resolve => setTimeout(resolve, 50));
+        setTimeout(() => {
+            this._image = photoInfo;
+            this._nextImage = null;
+        }, 500);
+    }
+
+    private animateWipe(img, duration = 500) {
+        let start;
+        function step(timestamp) {
+            if (!start) start = timestamp;
+            const elapsed = timestamp - start;
+            // progress is 0 to 1
+            const progress = Math.min(elapsed / duration, 1);
+            // Set --a from 0% to 100%
+            img.style.setProperty('--a', (Math.abs(progress - 1) * 110) + '%');
+            if (progress < 1) {
+                requestAnimationFrame(step);
             }
-
-            // Update the current image with the next image after transition
-            if (this._nextImage) {
-                this._image = this._nextImage;
-                this._nextImage = null;
-            }
-
-            setTimeout(() => {
-                this._isTransitioning = false;
-                this._transitioning = false;
-                // Clear the next image URL after transition is complete
-                this._nextImage = null;
-            }, 50);
-        }, this._transitionDuration);
+        }
+        requestAnimationFrame(step);
     }
 
     public render() {
@@ -238,19 +253,18 @@ export class PhotoSlideshow extends LitElement {
                 </div>
             ` : ''}
             ${this._image ? html`
-                <div class="image-container ${this._isTransitioning ? 'previous' : 'current'}">
+                <div class="image-container">
                     <div class="image-background" style="background-image: url(${this._image.meta.url})"></div>
                     <img class="image" src="${this._image.meta.url}" alt="Current photo"/>
                 </div>
             ` : ''}
-
             ${this._nextImage ? html`
-                <div class="image-container ${this._isTransitioning ? 'current' : 'next'}">
+                <div class="image-container next-image">
                     <div class="image-background" style="background-image: url(${this._nextImage.meta.url})"></div>
-                    <img class="image" src="${this._nextImage.meta.url}" alt="Next photo"/>
+                    <img class="image" src="${this._nextImage.meta.url}" alt="Current photo"/>
                 </div>
             ` : ''}
-
+            
             <div class="nav-buttons">
                 <button class="nav-button" @click=${this.previousSlide}>❮</button>
                 <button class="nav-button" @click=${this.nextSlide}>❯</button>

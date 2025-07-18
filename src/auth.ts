@@ -1,10 +1,12 @@
 import { AuthService, AuthServiceRegistration } from "./services/auth-service";
 
+export const PHOTOPRISM = 'photoprism';
+export const HOMEASSISTANT = 'homeassistant';
+
 export function registerPhotoPrismAuth(authService: AuthService) {
     const registration: AuthServiceRegistration = {
-        type: 'photoprism',
+        id: PHOTOPRISM,
         name: 'PhotoPrism',
-        storageKey: 'photoprism_auth',
         formFields: [
             {
                 id: 'baseUrl',
@@ -29,9 +31,8 @@ export function registerPhotoPrismAuth(authService: AuthService) {
 
 export function registerHomeAssistantAuth(authService: AuthService) {
     const registration: AuthServiceRegistration = {
-        type: 'homeassistant',
+        id: HOMEASSISTANT,
         name: 'Home Assistant',
-        storageKey: 'homeassistant_auth',
         formFields: [
             {
                 id: 'url',

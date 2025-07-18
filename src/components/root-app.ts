@@ -9,43 +9,43 @@ import './calendar-events';
 import './control-buttons';
 import './login-dialog';
 import './loading-spinner';
-import { photoPrismApi } from "../state";
+import { authService, photoPrismApi } from "../state";
+import { EVENT_AUTH_SUCCESS } from "../services/auth-service";
 
 @customElement('root-app')
 export class RootApp extends LitElement {
-    public static styles = css`
-        :host {
-            display: block;
-            width: 100%;
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-            background-color: #000;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            --primary-color: #ffffff;
-            --secondary-color: rgba(255, 255, 255, 0.8);
-            --background-overlay: rgba(0, 0, 0, 0.5);
-            --accent-color: #4285f4;
-            --transition-duration: 1s;
-        }
-    `;
-
-    @state() private _isLoading = false;
+    @state() private _isLoading = true;
 
     public async connectedCallback() {
         super.connectedCallback();
 
+        setTimeout(() => {
+            this.load();
+        });
+
+        window.addEventListener(EVENT_AUTH_SUCCESS, this.load.bind(this));
+    }
+
+    public async load(): Promise<void> {
         this._isLoading = true;
-        // setTimeout(() => {
-        //     authService.requestAuth('photoprism', 'nooo')
-        // });
+        for(const service of authService.getRegisteredServices()) {
+            if (!authService.getConfig(service.id)) {
+                setTimeout(() => {
+                    authService.requestAuth(service.id);
+                });
+                return;
+            }
+        }
         await photoPrismApi.initialize();
         this._isLoading = false;
     }
 
     public render() {
         return html`
-            ${this._isLoading ? html`<loading-spinner></loading-spinner><login-dialog></login-dialog>` : html`<photo-slideshow></photo-slideshow>`}
+            ${this._isLoading ? html`
+                <loading-spinner></loading-spinner>
+                <login-dialog></login-dialog>` : html`
+                <photo-slideshow></photo-slideshow>`}
         `;
     }
 }

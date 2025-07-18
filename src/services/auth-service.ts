@@ -12,9 +12,8 @@ export interface AuthData {
 }
 
 export interface AuthServiceRegistration {
-    type: string;
+    id: string;
     name: string;
-    storageKey: string;
     formFields: AuthFormField[];
 }
 
@@ -44,18 +43,11 @@ export interface AuthFailureEventDetail {
 export class AuthService {
     private registeredServices: Map<string, AuthServiceRegistration> = new Map();
     private authData: Map<string, AuthData> = new Map();
-    private authPromptActive = false;
-
-    constructor() {
-        window.addEventListener(EVENT_AUTH_REQUIRED, this.handleAuthRequired.bind(this) as EventListener);
-        window.addEventListener(EVENT_AUTH_SUCCESS, this.handleAuthSuccess.bind(this) as EventListener);
-        window.addEventListener(EVENT_AUTH_FAILURE, this.handleAuthFailure.bind(this) as EventListener);
-    }
 
     public registerService(registration: AuthServiceRegistration): void {
-        this.registeredServices.set(registration.type, registration);
+        this.registeredServices.set(registration.id, registration);
 
-        this.loadSavedCredentials(registration.type);
+        this.loadSavedCredentials(registration.id);
     }
 
     public getRegisteredService(type: string): AuthServiceRegistration | undefined {
@@ -98,20 +90,17 @@ export class AuthService {
         const registration = this.registeredServices.get(type);
         if (registration) {
             this.authData.delete(type);
-            localStorage.removeItem(registration.storageKey);
+            localStorage.removeItem(`auth-${registration.id}`);
         }
     }
 
     public requestAuth(type: string, message?: string): void {
-        if (this.authPromptActive) return;
-
         const registration = this.registeredServices.get(type);
         if (!registration) {
             console.error(`Service ${type} is not registered`);
             return;
         }
 
-        this.authPromptActive = true;
         const detail: AuthRequiredEventDetail = {
             type,
             message
@@ -145,7 +134,7 @@ export class AuthService {
                 return;
             }
 
-            const savedAuth = localStorage.getItem(registration.storageKey);
+            const savedAuth = localStorage.getItem(`auth-${registration.id}`);
             if (savedAuth) {
                 this.authData.set(type, JSON.parse(savedAuth));
             }
@@ -162,23 +151,9 @@ export class AuthService {
                 return;
             }
 
-            localStorage.setItem(registration.storageKey, JSON.stringify(data));
+            localStorage.setItem(`auth-${registration.id}`, JSON.stringify(data));
         } catch (error) {
             console.error(`Failed to save credentials for ${type}:`, error);
         }
-    }
-
-    private handleAuthRequired(event: CustomEvent<AuthRequiredEventDetail>): void {
-        console.log(`Authentication required for ${event.detail.type}`);
-    }
-
-    private handleAuthSuccess(event: CustomEvent<AuthSuccessEventDetail>): void {
-        this.authPromptActive = false;
-        console.log(`Authentication successful for ${event.detail.type}`);
-    }
-
-    private handleAuthFailure(event: CustomEvent<AuthFailureEventDetail>): void {
-        this.authPromptActive = false;
-        console.error(`Authentication failed for ${event.detail.type}: ${event.detail.error}`);
     }
 }
