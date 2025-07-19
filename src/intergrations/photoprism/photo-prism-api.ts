@@ -42,7 +42,7 @@ export class PhotoPrismApi {
     }
 
     public getPhotoUrl(hash: string, size: 'thumb' | 'fit_720' | 'fit_1280' | 'fit_1920' | 'fit_2048' | 'fit_2560' | 'fit_3840' | 'original' = 'fit_1920'): string {
-        return `/api/photoprism/v1/t/${hash}/${this._photoConfig!.previewToken}/${size}`;
+        return `${this._options.baseUrl}/api/v1/t/${hash}/${this._photoConfig!.previewToken}/${size}`;
     }
 
     public async getAlbums(params: PhotoAlbumParams): Promise<PhotoPrismAlbum[]> {
