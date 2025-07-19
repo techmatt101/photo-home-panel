@@ -1,9 +1,18 @@
 import { css, html, LitElement } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { controlButtonsService } from "../state";
+import { Subscription } from 'rxjs';
+import { LightEntity, MediaPlayerEntity, VacuumEntity } from '../intergrations/home-assistant/home-assistant.types';
 
 @customElement('control-buttons')
 export class ControlButtons extends LitElement {
+    private tvSubscription: Subscription | null = null;
+    private tvStatus: MediaPlayerEntity | null = null;
+    private lightSubscription: Subscription | null = null;
+    private lightStatus: LightEntity | null = null;
+    private vacuumSubscription: Subscription | null = null;
+    private vacuumStatus: VacuumEntity | null = null;
+
     public static styles = css`
         :host {
             display: block;
@@ -54,17 +63,46 @@ export class ControlButtons extends LitElement {
     public disconnectedCallback() {
         super.disconnectedCallback();
 
-        // Clean up service
-        controlButtonsService.dispose();
+        // Clean up subscriptions
+        if (this.tvSubscription) {
+            this.tvSubscription.unsubscribe();
+            this.tvSubscription = null;
+        }
+        
+        if (this.lightSubscription) {
+            this.lightSubscription.unsubscribe();
+            this.lightSubscription = null;
+        }
+        
+        if (this.vacuumSubscription) {
+            this.vacuumSubscription.unsubscribe();
+            this.vacuumSubscription = null;
+        }
     }
 
     public render() {
-        const isTVOn = controlButtonsService.isTVOn();
+        const isTVOn = this.tvStatus !== null && this.tvStatus.state !== 'off';
+        const isLightOn = this.lightStatus !== null && this.lightStatus.state === 'on';
+        const isVacuumActive = this.vacuumStatus !== null && this.vacuumStatus.state === 'cleaning';
 
         return html`
             <div class="controls">
-                <button class="control-button" title="Toggle living room lights" @click=${() => this.toggleLight('light.living_room')}>💡</button>
-                <button class="control-button" title="Start vacuum cleaner" @click=${this.startVacuum}>🧹</button>
+                <button 
+                    class="control-button" 
+                    title="${isLightOn ? 'Living room lights are on' : 'Living room lights are off'}" 
+                    style="${isLightOn ? 'background: rgba(255, 255, 0, 0.5);' : ''}"
+                    @click=${() => this.toggleLight('light.living_room')}
+                >
+                    💡
+                </button>
+                <button 
+                    class="control-button" 
+                    title="${isVacuumActive ? 'Vacuum is cleaning' : 'Start vacuum cleaner'}" 
+                    style="${isVacuumActive ? 'background: rgba(0, 255, 0, 0.5);' : ''}"
+                    @click=${this.startVacuum}
+                >
+                    🧹
+                </button>
                 ${isTVOn ? html`
                     <button class="control-button" title="TV is on">📺</button>
                 ` : ''}
@@ -75,9 +113,21 @@ export class ControlButtons extends LitElement {
 
     private async initializeControlButtons() {
         try {
-            await controlButtonsService.initialize();
-
-            controlButtonsService.subscribeTV(() => {
+            // Subscribe to TV status updates using RxJS
+            this.tvSubscription = controlButtonsService.tvStatus$.subscribe(tv => {
+                this.tvStatus = tv;
+                this.requestUpdate();
+            });
+            
+            // Subscribe to light status updates
+            this.lightSubscription = controlButtonsService.lightStatus$.subscribe(light => {
+                this.lightStatus = light;
+                this.requestUpdate();
+            });
+            
+            // Subscribe to vacuum status updates
+            this.vacuumSubscription = controlButtonsService.vacuumStatus$.subscribe(vacuum => {
+                this.vacuumStatus = vacuum;
                 this.requestUpdate();
             });
         } catch (error) {

@@ -49,6 +49,7 @@ export class RootApp extends LitElement {
                 <div style="position: fixed; z-index: 999">
                     <time-weather></time-weather>
                     <media-player></media-player>
+                    <control-buttons></control-buttons>
                 </div>
                 <photo-slideshow></photo-slideshow>
             `}

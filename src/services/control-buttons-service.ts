@@ -1,70 +1,25 @@
-import { MediaPlayerEntity } from '../intergrations/home-assistant/home-assistant.types';
+import { LightEntity, MediaPlayerEntity, VacuumEntity } from '../intergrations/home-assistant/home-assistant.types';
 import { HomeAssistantApi } from "../intergrations/home-assistant/home-assistant-api";
+import { Observable } from 'rxjs';
 
 export class ControlButtonsService {
-    private _tvStatus: MediaPlayerEntity | null = null;
-    private _tvSubscribers: ((tv: MediaPlayerEntity | null) => void)[] = [];
-
+    public tvStatus$: Observable<MediaPlayerEntity>;
+    public lightStatus$: Observable<LightEntity>;
+    public vacuumStatus$: Observable<VacuumEntity>;
     private _homeAssistantApi: HomeAssistantApi;
 
     constructor(homeAssistantApi: HomeAssistantApi) {
         this._homeAssistantApi = homeAssistantApi;
+        this.tvStatus$ = this._homeAssistantApi.tv$();
+        this.lightStatus$ = this._homeAssistantApi.entity$<LightEntity>('light.living_room');
+        this.vacuumStatus$ = this._homeAssistantApi.entity$<VacuumEntity>('vacuum.cleaner');
     }
 
-    public async initialize(): Promise<void> {
-        this._homeAssistantApi.subscribeTV((tv) => {
-            this._tvStatus = tv;
-            this.notifySubscribers();
-        });
+    public async toggleLight(entityId: string): Promise<void> {
+        await this._homeAssistantApi.toggleLight(entityId);
     }
 
-    public getTVStatus(): MediaPlayerEntity | null {
-        return this._tvStatus;
-    }
-
-    public isTVOn(): boolean {
-        return this._tvStatus !== null && this._tvStatus.state !== 'off';
-    }
-
-    public subscribeTV(callback: (tv: MediaPlayerEntity | null) => void): void {
-        this._tvSubscribers.push(callback);
-
-        if (this._tvStatus) {
-            callback(this._tvStatus);
-        }
-    }
-
-    public unsubscribeTV(callback: (tv: MediaPlayerEntity | null) => void): void {
-        this._tvSubscribers = this._tvSubscribers.filter(cb => cb !== callback);
-    }
-
-    public async toggleLight(entityId: string): Promise<boolean> {
-        try {
-            await this._homeAssistantApi.toggleLight(entityId);
-            return true;
-        } catch (error) {
-            console.error(`Failed to toggle light ${entityId}:`, error);
-            return false;
-        }
-    }
-
-    public async startVacuum(): Promise<boolean> {
-        try {
-            await this._homeAssistantApi.startVacuum();
-            return true;
-        } catch (error) {
-            console.error('Failed to start vacuum:', error);
-            return false;
-        }
-    }
-
-    public dispose(): void {
-        this._tvSubscribers = [];
-    }
-
-    private notifySubscribers(): void {
-        for (const callback of this._tvSubscribers) {
-            callback(this._tvStatus);
-        }
+    public async startVacuum(): Promise<void> {
+        await this._homeAssistantApi.startVacuum();
     }
 }
