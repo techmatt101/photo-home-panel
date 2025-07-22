@@ -66,6 +66,17 @@ npm run build
 
 The built application will be in the `dist` directory, ready to be deployed to any static hosting service.
 
+### Continuous Integration
+
+This project uses GitHub Actions for continuous integration:
+
+- Automated builds are triggered on pushes to main/master branches and pull requests
+- The workflow builds the application and stores the `dist` directory as an artifact
+- Build artifacts are available for download from the GitHub Actions workflow run page
+- Artifacts are retained for 7 days
+
+You can also manually trigger a build from the Actions tab in the GitHub repository.
+
 ## Usage
 
 ### Basic Usage
