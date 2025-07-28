@@ -147,9 +147,7 @@ export class PhotoSlideshow extends LitElement {
     @state() private _isLoading = true;
     @state() private _nextImage: SlideshowImage | null = null;
     @state() private _image: SlideshowImage | null = null;
-    @state() private _isTransitioning = false;
 
-    private _transitioning = false;
     private _slideshow: Slideshow;
 
     constructor() {
@@ -226,9 +224,9 @@ export class PhotoSlideshow extends LitElement {
         }, 500);
     }
 
-    private animateWipe(img, duration = 500) {
-        let start;
-        function step(timestamp) {
+    private animateWipe(img: any, duration = 500) {
+        let start: number;
+        function step(timestamp: number) {
             if (!start) start = timestamp;
             const elapsed = timestamp - start;
             // progress is 0 to 1

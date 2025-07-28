@@ -59,7 +59,7 @@ export class MediaPlayer extends LitElement {
         }
     `;
 
-    @state() private _model: MediaPlayerEntity;
+    @state() private _model: MediaPlayerEntity | null = null;
 
     public connectedCallback() {
         super.connectedCallback();
@@ -74,6 +74,9 @@ export class MediaPlayer extends LitElement {
     }
 
     public  render() {
+        if (this._model === null) {
+            return html``;
+        }
         return html`
             <div class="media-status">
                 <div class="media-info">
@@ -84,7 +87,7 @@ export class MediaPlayer extends LitElement {
                 </div>
                 <div class="media-controls">
                     <button class="media-button" @click=${() => this.mediaCommand('previous')}>⏮</button>
-                    <button class="media-button" @click=${() => this.mediaCommand(this._model.state ? 'pause' : 'play')}>
+                    <button class="media-button" @click=${() => this.mediaCommand(this._model!.state ? 'pause' : 'play')}>
                         ${this._model.state ? '⏸' : '▶'}
                     </button>
                     <button class="media-button" @click=${() => this.mediaCommand('next')}>⏭</button>
