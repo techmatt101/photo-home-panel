@@ -1,9 +1,10 @@
-import { html, LitElement } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 
 import './photo-slideshow';
 import './info-overlay';
-import './time-weather';
+import './clock-widget';
+import './weather-widget';
 import './media-player';
 import './calendar-events';
 import './control-buttons';
@@ -14,6 +15,30 @@ import { EVENT_AUTH_SUCCESS } from "../services/auth.service";
 
 @customElement('root-app')
 export class RootApp extends LitElement {
+    public static styles = css`
+        .overlay {
+            position: fixed;
+            z-index: 999;
+            background: rgba(0, 0, 0, 0.1);
+            bottom: 0;
+            right: 0;
+            width: 90%;
+            max-width: 1500px;
+            backdrop-filter: blur(10px);
+            margin-right: 40px;
+            padding: 20px;
+            border-radius: 20px 20px 0 0;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3), inset 6px 12px 42px 12px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top-color: rgba(255, 255, 255, 0.3);
+            border-bottom: none;
+    `;
+
+
     @state() private _isLoading = true;
 
     public async connectedCallback() {
@@ -46,10 +71,12 @@ export class RootApp extends LitElement {
             ${this._isLoading ? html`
                 <loading-spinner></loading-spinner>
                 <login-dialog></login-dialog>` : html`
-                <div style="position: fixed; z-index: 999">
-                    <time-weather></time-weather>
-                    <media-player></media-player>
-                    <control-buttons></control-buttons>
+                <div class="overlay">
+                    <div style="flex: 1 1 0%;"></div>
+                    <weather-widget></weather-widget>
+                    <clock-widget></clock-widget>
+                    <!-- <media-player></media-player>
+                    <control-buttons></control-buttons> -->
                 </div>
                 <photo-slideshow></photo-slideshow>
             `}

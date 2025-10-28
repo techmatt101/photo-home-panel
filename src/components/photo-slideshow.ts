@@ -38,7 +38,7 @@ export class PhotoSlideshow extends LitElement {
             height: 100%;
             background-size: cover;
             background-position: center;
-            filter: blur(20px) brightness(0.5);
+            filter: blur(40px) brightness(0.7);
             transform: scale(1.1);
         }
 
@@ -66,22 +66,6 @@ export class PhotoSlideshow extends LitElement {
             mask-composite: exclude;
         }
         
-        .photo-info {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            z-index: 3;
-            font-size: 14px;
-            max-width: 80%;
-        }
-
-        .photo-info p {
-            margin: 5px 0;
-        }
 
         /* Navigation buttons */
 
@@ -247,12 +231,6 @@ export class PhotoSlideshow extends LitElement {
         return html`
             ${this._isLoading ? html`
                 <loading-spinner></loading-spinner>` : ``}
-            ${this._image ? html`
-                <div class="photo-info">
-                    <p>📍 ${this._image.meta.location}</p>
-                    <p>📅 ${this._image.meta.date.toLocaleDateString('en-GB', { dateStyle: 'medium' })}</p>
-                </div>
-            ` : ''}
             ${this._image ? html`
                 <div class="image-container">
                     <div class="image-background" style="background-image: url(${this._image.meta.url})"></div>

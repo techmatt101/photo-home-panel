@@ -73,7 +73,7 @@ export default defineConfig({
             '/api/photoprism': {
                 target: 'http://nas:2342',
                 changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api\/photoprism/, '/api/'),
+                rewrite: (path) => path.replace('/api/photoprism', '/api'),
                 secure: false
             }
         }
