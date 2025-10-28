@@ -6,7 +6,7 @@ export interface PhotoInfo {
     date: Date;
 }
 
-export async function* nextImage(photoPrismApi: PhotoPrismApi, orientation: 'landscape' | 'portrait'): AsyncGenerator<PhotoInfo> {
+export async function* nextImage(photoPrismApi: PhotoPrismApi, orientation: 'any' | 'landscape' | 'portrait'): AsyncGenerator<PhotoInfo> {
     const albums = await photoPrismApi.getAlbums({category: 'Photography', count: 1000});
     if (albums.length === 0) {
         return;
@@ -23,13 +23,17 @@ export async function* nextImage(photoPrismApi: PhotoPrismApi, orientation: 'lan
             count: selectedAlbum.PhotoCount
         });
 
-        let filteredPhotos = albumPhotos.filter(photo => {
-            if (orientation === 'landscape') {
-                return photo.Width > photo.Height;
-            } else {
-                return photo.Height > photo.Width;
-            }
-        });
+        let filteredPhotos = albumPhotos;
+        
+        if (orientation !== 'any') {
+            filteredPhotos = albumPhotos.filter(photo => {
+                if (orientation === 'landscape') {
+                    return photo.Width > photo.Height;
+                } else {
+                    return photo.Height > photo.Width;
+                }
+            });
+        }
 
         if (filteredPhotos.length === 0) {
             remainingAlbums.splice(randomAlbumIndex, 1);

@@ -216,28 +216,31 @@ export class PhotoSlideshow extends LitElement {
         }
         this._nextImage = photoInfo;
 
-        this.animateWipe(this);
+        await this.animateWipe(this, 500);
 
-        setTimeout(() => {
-            this._image = photoInfo;
-            this._nextImage = null;
-        }, 500);
+        this._image = this._nextImage;
+        this._nextImage = null;
     }
 
-    private animateWipe(img: any, duration = 500) {
-        let start: number;
-        function step(timestamp: number) {
-            if (!start) start = timestamp;
-            const elapsed = timestamp - start;
-            // progress is 0 to 1
-            const progress = Math.min(elapsed / duration, 1);
-            // Set --a from 0% to 100%
-            img.style.setProperty('--a', (Math.abs(progress - 1) * 110) + '%');
-            if (progress < 1) {
-                requestAnimationFrame(step);
+    private animateWipe(img: any, duration: number): Promise<void> {
+        return new Promise<void>((resolve) => {
+            let start: number;
+            function step(timestamp: number) {
+                if (!start) start = timestamp;
+                const elapsed = timestamp - start;
+                // progress is 0 to 1
+                const progress = Math.min(elapsed / duration, 1);
+                // Set --a from 0% to 100%
+                img.style.setProperty('--a', (Math.abs(progress - 1) * 110) + '%');
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    resolve();
+                }
             }
-        }
-        requestAnimationFrame(step);
+            requestAnimationFrame(step);
+        });
+
     }
 
     public render() {
