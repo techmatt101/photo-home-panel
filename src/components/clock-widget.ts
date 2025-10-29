@@ -6,15 +6,22 @@ import { format } from 'date-fns';
 @customElement('clock-widget')
 export class ClockWidget extends LitElement {
     public static styles = css`
+        :host {
+            display: block;
+            min-width: 400px
+        }
+
         .time {
             font-size: 8rem;
             font-weight: bold;
             color: #fff;
+            height: 154px;
 
             small {
                 font-size: 0.3em;
                 margin-left: 0.2em;
                 color: rgba(255, 255, 255, 0.5);
+                font-weight: normal;
             }
         }
 

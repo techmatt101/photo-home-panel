@@ -36,6 +36,13 @@ export class RootApp extends LitElement {
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-top-color: rgba(255, 255, 255, 0.3);
             border-bottom: none;
+            gap: 50px;
+        }
+
+        .spacer {
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
+            height: 150px;
+        }
     `;
 
 
@@ -72,11 +79,13 @@ export class RootApp extends LitElement {
                 <loading-spinner></loading-spinner>
                 <login-dialog></login-dialog>` : html`
                 <div class="overlay">
+                    <media-player></media-player>
+                    <!-- <control-buttons></control-buttons> -->
                     <div style="flex: 1 1 0%;"></div>
                     <weather-widget></weather-widget>
+                    <div class="spacer"></div>
                     <clock-widget></clock-widget>
-                    <!-- <media-player></media-player>
-                    <control-buttons></control-buttons> -->
+
                 </div>
                 <photo-slideshow></photo-slideshow>
             `}
