@@ -2,6 +2,7 @@ import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { mediaPlayerService } from "../state";
 import { MediaPlayerEntity } from "../intergrations/home-assistant/home-assistant.types";
+import { NEXT_ICON, PAUSE_ICON, PLAY_ICON, PREVIOUS_ICON } from '../icons/media-icons';
 
 @customElement('media-player')
 export class MediaPlayer extends LitElement {
@@ -50,12 +51,17 @@ export class MediaPlayer extends LitElement {
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            font-size: 18px;
             transition: background-color 0.2s ease;
         }
 
         .media-button:hover {
             background: rgba(0, 0, 0, 0.5);
+        }
+
+        .media-button__icon {
+            width: 20px;
+            height: 20px;
+            filter: invert(1) sepia(0) saturate(0) hue-rotate(0deg) brightness(1.2) contrast(1.2);
         }
     `;
 
@@ -77,6 +83,12 @@ export class MediaPlayer extends LitElement {
         if (this._model === null) {
             return html``;
         }
+
+        const isPlaying = this._model.state === 'playing';
+        const playPauseIcon = isPlaying ? PAUSE_ICON : PLAY_ICON;
+        const playPauseTitle = isPlaying ? 'Pause' : 'Play';
+        const playPauseCommand: 'play' | 'pause' = isPlaying ? 'pause' : 'play';
+
         return html`
             <div class="media-status">
                 <div class="media-info">
@@ -86,11 +98,15 @@ export class MediaPlayer extends LitElement {
                         <div class="media-artist">${this._model.attributes.media_artist}</div>` : ''}
                 </div>
                 <div class="media-controls">
-                    <button class="media-button" @click=${() => this.mediaCommand('previous')}>⏮</button>
-                    <button class="media-button" @click=${() => this.mediaCommand(this._model!.state ? 'pause' : 'play')}>
-                        ${this._model.state ? '⏸' : '▶'}
+                    <button class="media-button" type="button" title="Previous track" @click=${() => this.mediaCommand('previous')}>
+                        <img class="media-button__icon" src=${PREVIOUS_ICON} alt="Previous track" />
                     </button>
-                    <button class="media-button" @click=${() => this.mediaCommand('next')}>⏭</button>
+                    <button class="media-button" type="button" title=${playPauseTitle} @click=${() => this.mediaCommand(playPauseCommand)}>
+                        <img class="media-button__icon" src=${playPauseIcon} alt=${playPauseTitle} />
+                    </button>
+                    <button class="media-button" type="button" title="Next track" @click=${() => this.mediaCommand('next')}>
+                        <img class="media-button__icon" src=${NEXT_ICON} alt="Next track" />
+                    </button>
                 </div>
             </div>
         `;

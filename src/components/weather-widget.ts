@@ -2,29 +2,15 @@ import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { WeatherEntity } from '../intergrations/home-assistant/home-assistant.types';
 import { weatherService } from "../state";
-
-const icon = (name: string) => new URL(`../assets/weather/${name}.svg`, import.meta.url).href;
-
-const WEATHER_ICON_MAP: Record<string, string> = {
-    'clear-night': icon('clear-night'),
-    'cloudy': icon('cloudy'),
-    'fog': icon('fog'),
-    'hail': icon('hail'),
-    'lightning': icon('lightning'),
-    'lightning-rainy': icon('lightning-rainy'),
-    'partlycloudy': icon('partlycloudy'),
-    'pouring': icon('pouring'),
-    'rainy': icon('rainy'),
-    'snowy': icon('snowy'),
-    'snowy-rainy': icon('snowy-rainy'),
-    'sunny': icon('sunny'),
-    'windy': icon('windy'),
-    'windy-variant': icon('windy-variant')
-};
+import { DEFAULT_WEATHER_ICON, getWeatherIcon } from '../icons/weather-icons';
 
 @customElement('weather-widget')
 export class WeatherWidget extends LitElement {
     public static styles = css`
+        :host {
+            display: block;
+        }
+
         .temp {
             font-size: 3rem;
             font-weight: bold;
@@ -62,29 +48,20 @@ export class WeatherWidget extends LitElement {
         if (!this._weatherData) {
             return html`
                 <div class="container">
-                    <img class="icon"/>
+                    <img class="icon" src=${DEFAULT_WEATHER_ICON} alt="Weather condition"/>
                     <div class="temp">--<small>°C</small></div>
                 </div>
             `;
         }
 
         const { state, attributes } = this._weatherData;
-        const iconSrc = this._getIconForState(state);
+        const iconSrc = getWeatherIcon(state);
 
         return html`
             <div class="container" @click=${() => open('weather://stafford', '_blank')}>
-                <img class="icon" src=${iconSrc}/>
+                <img class="icon" src=${iconSrc} alt="Weather condition"/>
                 <div class="temp">${attributes.temperature}<small>°C</small></div>
             </div>
         `;
-    }
-
-    private _getIconForState(condition: string | null | undefined): string {
-        if (!condition) {
-            return '';
-        }
-
-        const normalized = condition.trim().toLowerCase().replace(/[\s_]+/g, '-');
-        return WEATHER_ICON_MAP[normalized] ?? '';
     }
 }
