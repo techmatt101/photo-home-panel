@@ -6,6 +6,7 @@ import { PhotoPrismApi } from "./intergrations/photoprism/photo-prism-api";
 import { ControlButtonsService } from "./services/control-buttons-service";
 import { MediaService } from "./services/media.service";
 import { WeatherService } from "./services/weather.service";
+import { TimerService } from "./services/timer.service";
 
 export const authService = new AuthService();
 
@@ -19,3 +20,4 @@ export const calendarEventsService = new CalendarEventsService(homeAssistantApi)
 export const controlButtonsService = new ControlButtonsService(homeAssistantApi);
 export const mediaPlayerService = new MediaService(homeAssistantApi);
 export const weatherService = new WeatherService(homeAssistantApi);
+export const timerService = new TimerService(homeAssistantApi);

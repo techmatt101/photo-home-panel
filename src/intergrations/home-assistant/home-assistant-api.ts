@@ -1,5 +1,5 @@
 import { callService, Connection, createConnection, subscribeEntities } from 'home-assistant-js-websocket';
-import { CalendarEntity, HomeAssistantConfig, MediaPlayerEntity, SpotcastStartOptions } from './home-assistant.types';
+import { CalendarEntity, HomeAssistantConfig, MediaPlayerEntity, SpotcastStartOptions, TimerEntity } from './home-assistant.types';
 import { createLongLivedTokenAuth } from "home-assistant-js-websocket";
 import { BehaviorSubject, map, Observable } from 'rxjs';
 
@@ -248,6 +248,29 @@ export class HomeAssistantApi {
         await callService(connection, 'media_player', 'volume_set', {
             entity_id: entityId,
             volume_level: volumeLevel
+        });
+    }
+
+    public timers$(): Observable<TimerEntity[]> {
+        return this.entities$().pipe(
+            map((entities) => Object.entries(entities)
+                .filter(([entityId]) => entityId.startsWith('timer.'))
+                .map(([entityId, entity]) => ({
+                    ...(entity as TimerEntity),
+                    entity_id: entityId
+                })))
+        );
+    }
+
+    public async controlTimer(
+        entityId: string,
+        command: 'start' | 'pause' | 'cancel' | 'finish',
+        payload: Record<string, unknown> = {}
+    ): Promise<void> {
+        const connection = await this.connect();
+        await callService(connection, 'timer', command, {
+            entity_id: entityId,
+            ...payload
         });
     }
 

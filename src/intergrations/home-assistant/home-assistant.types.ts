@@ -88,6 +88,17 @@ export interface VacuumEntity {
     };
 }
 
+export interface TimerEntity {
+    entity_id?: string;
+    state: string;
+    attributes: {
+        friendly_name: string;
+        duration?: string;
+        remaining?: string;
+        finishes_at?: string | null;
+    };
+}
+
 export interface SpotcastStartOptions {
     entity_id: string;
     uri?: string;

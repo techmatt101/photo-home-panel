@@ -8,6 +8,7 @@ import './control-widget';
 import './weather-widget';
 import './clock-widget';
 import './calendar-events';
+import './timer-widget';
 
 @customElement('widget-overlay')
 export class WidgetOverlay extends LitElement {
@@ -204,6 +205,9 @@ export class WidgetOverlay extends LitElement {
                 <div class="overlay__extras">
                     <div class="overlay__extras-card">
                         <control-widget></control-widget>
+                    </div>
+                    <div class="overlay__extras-card">
+                        <timer-widget></timer-widget>
                     </div>
                     <div class="overlay__extras-card">
                         <calendar-events></calendar-events>
