@@ -33,9 +33,7 @@ export class MediaPlayer extends LitElement {
             background-image: var(--media-artwork, none);
             background-size: cover;
             background-position: center;
-            filter: blur(28px);
-            transform: scale(1.12);
-            opacity: 0.45;
+            filter: blur(4px);
             transition: opacity 0.3s ease;
             z-index: -2;
         }

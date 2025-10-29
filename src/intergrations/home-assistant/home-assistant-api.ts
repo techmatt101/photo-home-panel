@@ -208,4 +208,8 @@ export class HomeAssistantApi {
         return this._config.url;
     }
 
+    public getAccessToken(): string {
+        return this._config.accessToken;
+    }
+
 }

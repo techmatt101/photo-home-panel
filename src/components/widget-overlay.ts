@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { classMap } from 'lit/directives/class-map.js';
 import { styleMap } from 'lit/directives/style-map.js';
 
@@ -17,6 +17,7 @@ export class WidgetOverlay extends LitElement {
     @state() private _sheetHeight = WidgetOverlay.COLLAPSED_HEIGHT;
     @state() private _isExpanded = false;
     @state() private _isDragging = false;
+    @property({type: String}) public viewMode: 'photos' | 'camera' = 'photos';
 
     private _dragStartY = 0;
     private _dragStartHeight = WidgetOverlay.COLLAPSED_HEIGHT;
@@ -81,6 +82,36 @@ export class WidgetOverlay extends LitElement {
             gap: 32px;
         }
 
+        .view-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 999px;
+            padding: 6px;
+            margin: 12px 0 24px;
+        }
+
+        .view-toggle__button {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 16px;
+            background: transparent;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s ease;
+        }
+
+        .view-toggle__button:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .view-toggle__button--active {
+            background: rgba(255, 255, 255, 0.9);
+            color: #000;
+        }
+
         .overlay__extras {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -143,6 +174,28 @@ export class WidgetOverlay extends LitElement {
                     @pointerup=${this._onHandlePointerUp}
                     @pointercancel=${this._onHandlePointerUp}
                 ></div>
+                <div class="view-toggle">
+                    <button
+                        class=${classMap({
+                            'view-toggle__button': true,
+                            'view-toggle__button--active': this.viewMode === 'photos'
+                        })}
+                        type="button"
+                        @click=${() => this._setViewMode('photos')}
+                    >
+                        Photos
+                    </button>
+                    <button
+                        class=${classMap({
+                            'view-toggle__button': true,
+                            'view-toggle__button--active': this.viewMode === 'camera'
+                        })}
+                        type="button"
+                        @click=${() => this._setViewMode('camera')}
+                    >
+                        CCTV
+                    </button>
+                </div>
                 <div class="overlay__content">
                     <media-player></media-player>
                     <div class="flex-spacer"></div>
@@ -204,6 +257,20 @@ export class WidgetOverlay extends LitElement {
 
         this._sheetHeight = shouldExpand ? WidgetOverlay.EXPANDED_HEIGHT : WidgetOverlay.COLLAPSED_HEIGHT;
         this._isExpanded = shouldExpand;
+    }
+
+    private _setViewMode(mode: 'photos' | 'camera'): void {
+        if (this.viewMode === mode) {
+            return;
+        }
+
+        this.viewMode = mode;
+
+        this.dispatchEvent(new CustomEvent('view-mode-change', {
+            detail: { viewMode: mode },
+            bubbles: true,
+            composed: true
+        }));
     }
 
 }

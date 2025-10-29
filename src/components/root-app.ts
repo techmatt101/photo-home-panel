@@ -6,12 +6,14 @@ import './info-overlay';
 import './login-dialog';
 import './loading-spinner';
 import './widget-overlay';
+import './camera-view';
 import { authService, homeAssistantApi, photoPrismApi } from "../state";
 import { EVENT_AUTH_SUCCESS } from "../services/auth.service";
 
 @customElement('root-app')
 export class RootApp extends LitElement {
     @state() private _isLoading = true;
+    @state() private _viewMode: 'photos' | 'camera' = 'photos';
 
     public async connectedCallback() {
         super.connectedCallback();
@@ -43,9 +45,20 @@ export class RootApp extends LitElement {
             ${this._isLoading ? html`
                 <loading-spinner></loading-spinner>
                 <login-dialog></login-dialog>` : html`
-                <widget-overlay></widget-overlay>
-                <photo-slideshow></photo-slideshow>
+                <widget-overlay
+                    .viewMode=${this._viewMode}
+                    @view-mode-change=${this._onViewModeChange}
+                ></widget-overlay>
+                ${this._viewMode === 'camera' ? html`
+                    <camera-view></camera-view>
+                ` : html`
+                    <photo-slideshow></photo-slideshow>
+                `}
             `}
         `;
+    }
+
+    private _onViewModeChange(event: CustomEvent<{ viewMode: 'photos' | 'camera' }>): void {
+        this._viewMode = event.detail.viewMode;
     }
 }

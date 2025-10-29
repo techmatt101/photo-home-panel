@@ -52,6 +52,17 @@ export interface MediaPlayerEntity {
     };
 }
 
+export interface CameraEntity {
+    state: string;
+    attributes: {
+        friendly_name: string;
+        access_token?: string;
+        entity_picture?: string;
+        frontend_stream_type?: string;
+        fps?: number;
+    };
+}
+
 export interface LightEntity {
     state: string;
     attributes: {
