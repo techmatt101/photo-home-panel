@@ -48,7 +48,7 @@ export class WeatherWidget extends LitElement {
         if (!this._weatherData) {
             return html`
                 <div class="container">
-                    <img class="icon" src=${DEFAULT_WEATHER_ICON} alt="Weather condition"/>
+                    <img class="icon" src=${DEFAULT_WEATHER_ICON} alt="Weather condition" draggable="false"/>
                     <div class="temp">--<small>°C</small></div>
                 </div>
             `;
@@ -59,7 +59,7 @@ export class WeatherWidget extends LitElement {
 
         return html`
             <div class="container" @click=${() => open('weather://stafford', '_blank')}>
-                <img class="icon" src=${iconSrc} alt="Weather condition"/>
+                <img class="icon" src=${iconSrc} alt="Weather condition" draggable="false" />
                 <div class="temp">${attributes.temperature}<small>°C</small></div>
             </div>
         `;

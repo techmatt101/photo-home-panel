@@ -11,7 +11,7 @@ export class ControlButtonsService {
     constructor(homeAssistantApi: HomeAssistantApi) {
         this._homeAssistantApi = homeAssistantApi;
         this.tvStatus$ = this._homeAssistantApi.tv$();
-        this.lightStatus$ = this._homeAssistantApi.entity$<LightEntity>('light.living_room');
+        this.lightStatus$ = this._homeAssistantApi.entity$<LightEntity>('light.kitchen');
         this.vacuumStatus$ = this._homeAssistantApi.entity$<VacuumEntity>('vacuum.cleaner');
     }
 

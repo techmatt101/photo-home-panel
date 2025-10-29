@@ -112,7 +112,7 @@ export class ControlWidget extends LitElement {
     @state() private _vacuumStatus: VacuumEntity | null = null;
 
     private _subscriptions: Subscription = new Subscription();
-    private readonly _lightEntityId = 'light.living_room';
+    private readonly _lightEntityId = 'light.kitchen';
 
     public connectedCallback() {
         super.connectedCallback();

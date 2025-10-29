@@ -33,8 +33,6 @@ export class WidgetOverlay extends LitElement {
             background: linear-gradient(153deg, rgb(157 94 0 / 10%), rgb(0 95 161 / 20%));
             bottom: 0;
             right: 0;
-            width: 90%;
-            max-width: 1500px;
             backdrop-filter: blur(10px);
             margin-right: 40px;
             padding: 16px 24px 24px;
@@ -174,28 +172,6 @@ export class WidgetOverlay extends LitElement {
                     @pointerup=${this._onHandlePointerUp}
                     @pointercancel=${this._onHandlePointerUp}
                 ></div>
-                <div class="view-toggle">
-                    <button
-                        class=${classMap({
-                            'view-toggle__button': true,
-                            'view-toggle__button--active': this.viewMode === 'photos'
-                        })}
-                        type="button"
-                        @click=${() => this._setViewMode('photos')}
-                    >
-                        Photos
-                    </button>
-                    <button
-                        class=${classMap({
-                            'view-toggle__button': true,
-                            'view-toggle__button--active': this.viewMode === 'camera'
-                        })}
-                        type="button"
-                        @click=${() => this._setViewMode('camera')}
-                    >
-                        CCTV
-                    </button>
-                </div>
                 <div class="overlay__content">
                     <media-player></media-player>
                     <div class="flex-spacer"></div>
@@ -209,6 +185,28 @@ export class WidgetOverlay extends LitElement {
                     </div>
                     <div class="overlay__extras-card">
                         <calendar-events></calendar-events>
+                        <div class="view-toggle">
+                            <button
+                                class=${classMap({
+                                    'view-toggle__button': true,
+                                    'view-toggle__button--active': this.viewMode === 'photos'
+                                })}
+                                type="button"
+                                @click=${() => this._setViewMode('photos')}
+                            >
+                                Photos
+                            </button>
+                            <button
+                                class=${classMap({
+                                    'view-toggle__button': true,
+                                    'view-toggle__button--active': this.viewMode === 'camera'
+                                })}
+                                type="button"
+                                @click=${() => this._setViewMode('camera')}
+                            >
+                                CCTV
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
