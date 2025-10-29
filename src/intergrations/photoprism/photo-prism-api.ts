@@ -9,7 +9,7 @@ export class PhotoPrismApi {
     }
 
     public async initialize(): Promise<void> {
-        const response = await fetch(`/api/photoprism/v1/config`, {
+        const response = await fetch(`${this._options.baseUrl}/api/v1/config`, {
             method: 'GET',
             headers: this.getHeaders()
         });
@@ -29,7 +29,7 @@ export class PhotoPrismApi {
 
     public async searchPhotos(params: PhotoSearchParams): Promise<PhotoPrismPhoto[]> {
         const search = new URLSearchParams(Object.entries(params));
-        const response = await fetch(`/api/photoprism/v1/photos?${search.toString()}`, {
+        const response = await fetch(`${this._options.baseUrl}/api/v1/photos?${search.toString()}`, {
             method: 'GET',
             headers: this.getHeaders()
         });
@@ -47,7 +47,7 @@ export class PhotoPrismApi {
 
     public async getAlbums(params: PhotoAlbumParams): Promise<PhotoPrismAlbum[]> {
         const search = new URLSearchParams(Object.entries(params));
-        const response = await fetch(`/api/photoprism/v1/albums?${search}`, {
+        const response = await fetch(`${this._options.baseUrl}/api/v1/albums?${search}`, {
             method: 'GET',
             headers: this.getHeaders()
         });

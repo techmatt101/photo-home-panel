@@ -1,8 +1,11 @@
 import {defineConfig} from 'vite';
+import minifyHTML from 'rollup-plugin-minify-html-literals';
 // import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig({
     plugins: [
+        //// @ts-expect-error wrong type
+        // minifyHTML.default(),
         // VitePWA({
         //     registerType: 'autoUpdate',
         //     includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
@@ -69,17 +72,18 @@ export default defineConfig({
     server: {
         port: 3000,
         open: true,
-        proxy: {
-            '/api/photoprism': {
-                target: 'http://nas:2342',
-                changeOrigin: true,
-                rewrite: (path) => path.replace('/api/photoprism', '/api'),
-                secure: false
-            }
-        }
+        // proxy: {
+        //     '/api/photoprism': {
+        //         target: 'http://nas:2342',
+        //         changeOrigin: true,
+        //         rewrite: (path) => path.replace('/api/photoprism', '/api'),
+        //         secure: false
+        //     }
+        // }
     },
     build: {
         sourcemap: true,
+        minify: false,
         outDir: 'dist'
     }
 });
