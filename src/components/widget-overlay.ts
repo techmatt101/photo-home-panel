@@ -90,6 +90,13 @@ export class WidgetOverlay extends LitElement {
             margin: 12px 0 24px;
         }
 
+        .overlay__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
         .view-toggle__button {
             border: none;
             border-radius: 999px;
@@ -108,6 +115,21 @@ export class WidgetOverlay extends LitElement {
         .view-toggle__button--active {
             background: rgba(255, 255, 255, 0.9);
             color: #000;
+        }
+
+        .settings-button {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.35);
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s ease;
+        }
+
+        .settings-button:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .overlay__extras {
@@ -185,26 +207,31 @@ export class WidgetOverlay extends LitElement {
                     </div>
                     <div class="overlay__extras-card">
                         <calendar-events></calendar-events>
-                        <div class="view-toggle">
-                            <button
-                                class=${classMap({
-                                    'view-toggle__button': true,
-                                    'view-toggle__button--active': this.viewMode === 'photos'
-                                })}
-                                type="button"
-                                @click=${() => this._setViewMode('photos')}
-                            >
-                                Photos
-                            </button>
-                            <button
-                                class=${classMap({
-                                    'view-toggle__button': true,
-                                    'view-toggle__button--active': this.viewMode === 'camera'
-                                })}
-                                type="button"
-                                @click=${() => this._setViewMode('camera')}
-                            >
-                                CCTV
+                        <div class="overlay__header">
+                            <div class="view-toggle">
+                                <button
+                                    class=${classMap({
+                                        'view-toggle__button': true,
+                                        'view-toggle__button--active': this.viewMode === 'photos'
+                                    })}
+                                    type="button"
+                                    @click=${() => this._setViewMode('photos')}
+                                >
+                                    Photos
+                                </button>
+                                <button
+                                    class=${classMap({
+                                        'view-toggle__button': true,
+                                        'view-toggle__button--active': this.viewMode === 'camera'
+                                    })}
+                                    type="button"
+                                    @click=${() => this._setViewMode('camera')}
+                                >
+                                    CCTV
+                                </button>
+                            </div>
+                            <button class="settings-button" type="button" @click=${this._openSettings}>
+                                Settings
                             </button>
                         </div>
                     </div>
@@ -270,5 +297,12 @@ export class WidgetOverlay extends LitElement {
             composed: true
         }));
     }
+
+    private _openSettings = (): void => {
+        this.dispatchEvent(new CustomEvent('open-settings', {
+            bubbles: true,
+            composed: true
+        }));
+    };
 
 }
