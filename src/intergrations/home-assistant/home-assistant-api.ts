@@ -1,6 +1,6 @@
 import { callService, Connection, createConnection, subscribeEntities } from 'home-assistant-js-websocket';
 import { CalendarEntity, HomeAssistantConfig, MediaPlayerEntity } from './home-assistant.types';
-import { createLongLivedTokenAuth } from "home-assistant-js-websocket/dist/auth";
+import { createLongLivedTokenAuth } from "home-assistant-js-websocket";
 import { BehaviorSubject, map, Observable } from 'rxjs';
 
 export class HomeAssistantApi {
@@ -202,6 +202,10 @@ export class HomeAssistantApi {
         const connection = await this.connect();
         const domain = 'media_player';
         await callService(connection, domain, command, {entity_id: entityId});
+    }
+
+    public getBaseUrl(): string {
+        return this._config.url;
     }
 
 }

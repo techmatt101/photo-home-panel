@@ -1,6 +1,8 @@
 import { css, html, LitElement } from 'lit';
+import { classMap } from 'lit/directives/class-map.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { customElement, state } from 'lit/decorators.js';
-import { mediaPlayerService } from "../state";
+import { homeAssistantApi, mediaPlayerService } from "../state";
 import { MediaPlayerEntity } from "../intergrations/home-assistant/home-assistant.types";
 import { NEXT_ICON, PAUSE_ICON, PLAY_ICON, PREVIOUS_ICON } from '../icons/media-icons';
 
@@ -14,10 +16,47 @@ export class MediaPlayer extends LitElement {
         }
 
         .media-status {
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
+            position: relative;
+            padding: 24px;
+            border-radius: 18px;
             margin-top: auto;
+            overflow: hidden;
+            background: rgba(15, 15, 15, 0.6);
+            isolation: isolate;
+            transition: background 0.3s ease;
+        }
+
+        .media-status::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: var(--media-artwork, none);
+            background-size: cover;
+            background-position: center;
+            filter: blur(28px);
+            transform: scale(1.12);
+            opacity: 0.45;
+            transition: opacity 0.3s ease;
+            z-index: -2;
+        }
+
+        .media-status::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.25));
+            z-index: -1;
+        }
+
+        .media-status:not(.media-status--with-artwork)::before {
+            opacity: 0;
+        }
+
+        .media-status__content {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
         }
 
         .media-info {
@@ -89,24 +128,35 @@ export class MediaPlayer extends LitElement {
         const playPauseTitle = isPlaying ? 'Pause' : 'Play';
         const playPauseCommand: 'play' | 'pause' = isPlaying ? 'pause' : 'play';
 
+        const artworkUrl = this._resolveArtworkUrl(this._model);
+        const mediaStatusClasses = classMap({
+            'media-status': true,
+            'media-status--with-artwork': Boolean(artworkUrl)
+        });
+        const mediaStatusStyles = artworkUrl ? {
+            '--media-artwork': `url("${artworkUrl}")`
+        } : {};
+
         return html`
-            <div class="media-status">
-                <div class="media-info">
+            <div class=${mediaStatusClasses} style=${styleMap(mediaStatusStyles)}>
+                <div class="media-status__content">
+                    <div class="media-info">
                     ${this._model.attributes.media_title ? html`
                         <div class="media-title">${this._model.attributes.media_title}</div>` : ''}
                     ${this._model.attributes.media_artist ? html`
                         <div class="media-artist">${this._model.attributes.media_artist}</div>` : ''}
-                </div>
-                <div class="media-controls">
-                    <button class="media-button" type="button" title="Previous track" @click=${() => this.mediaCommand('previous')}>
-                        <img class="media-button__icon" src=${PREVIOUS_ICON} alt="Previous track" />
-                    </button>
-                    <button class="media-button" type="button" title=${playPauseTitle} @click=${() => this.mediaCommand(playPauseCommand)}>
-                        <img class="media-button__icon" src=${playPauseIcon} alt=${playPauseTitle} />
-                    </button>
-                    <button class="media-button" type="button" title="Next track" @click=${() => this.mediaCommand('next')}>
-                        <img class="media-button__icon" src=${NEXT_ICON} alt="Next track" />
-                    </button>
+                    </div>
+                    <div class="media-controls">
+                        <button class="media-button" type="button" title="Previous track" @click=${() => this.mediaCommand('previous')}>
+                            <img class="media-button__icon" src=${PREVIOUS_ICON} alt="Previous track" />
+                        </button>
+                        <button class="media-button" type="button" title=${playPauseTitle} @click=${() => this.mediaCommand(playPauseCommand)}>
+                            <img class="media-button__icon" src=${playPauseIcon} alt=${playPauseTitle} />
+                        </button>
+                        <button class="media-button" type="button" title="Next track" @click=${() => this.mediaCommand('next')}>
+                            <img class="media-button__icon" src=${NEXT_ICON} alt="Next track" />
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -114,5 +164,24 @@ export class MediaPlayer extends LitElement {
 
     private async mediaCommand(command: 'play' | 'pause' | 'next' | 'previous') {
         await mediaPlayerService.mediaCommand(command);
+    }
+
+    private _resolveArtworkUrl(entity: MediaPlayerEntity | null): string | null {
+        const picture = entity?.attributes?.entity_picture;
+
+        if (!picture) {
+            return null;
+        }
+
+        if (/^https?:\/\//i.test(picture)) {
+            return picture;
+        }
+
+        try {
+            return new URL(picture, homeAssistantApi.getBaseUrl()).toString();
+        } catch (error) {
+            console.warn('Unable to resolve media artwork URL', error);
+            return picture;
+        }
     }
 }

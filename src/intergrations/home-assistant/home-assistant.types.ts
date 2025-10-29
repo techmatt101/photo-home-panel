@@ -48,6 +48,7 @@ export interface MediaPlayerEntity {
         source_list?: string[];
         sound_mode?: string;
         sound_mode_list?: string[];
+        entity_picture?: string;
     };
 }
 
