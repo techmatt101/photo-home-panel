@@ -49,6 +49,7 @@ export interface MediaPlayerEntity {
         sound_mode?: string;
         sound_mode_list?: string[];
         entity_picture?: string;
+        shuffle?: boolean;
     };
 }
 
@@ -85,6 +86,16 @@ export interface VacuumEntity {
         fan_speed?: string;
         fan_speed_list?: string[];
     };
+}
+
+export interface SpotcastStartOptions {
+    entity_id: string;
+    uri?: string;
+    random_song?: boolean;
+    shuffle?: boolean;
+    account?: string;
+    force_playback?: boolean;
+    start_volume?: number;
 }
 
 // Configuration for Home Assistant API

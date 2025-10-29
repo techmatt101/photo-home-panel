@@ -1,5 +1,5 @@
 import { callService, Connection, createConnection, subscribeEntities } from 'home-assistant-js-websocket';
-import { CalendarEntity, HomeAssistantConfig, MediaPlayerEntity } from './home-assistant.types';
+import { CalendarEntity, HomeAssistantConfig, MediaPlayerEntity, SpotcastStartOptions } from './home-assistant.types';
 import { createLongLivedTokenAuth } from "home-assistant-js-websocket";
 import { BehaviorSubject, map, Observable } from 'rxjs';
 
@@ -198,10 +198,28 @@ export class HomeAssistantApi {
         await callService(connection, domain, service, {entity_id: entityId});
     }
 
-    public async mediaPlayerCommand(entityId: string, command: 'play' | 'pause' | 'next' | 'previous' | 'volume_up' | 'volume_down' | 'volume_mute'): Promise<void> {
+    public async mediaPlayerCommand(
+        entityId: string,
+        command: 'play' | 'pause' | 'next' | 'previous' | 'volume_up' | 'volume_down' | 'volume_mute'
+    ): Promise<void> {
         const connection = await this.connect();
         const domain = 'media_player';
-        await callService(connection, domain, command, {entity_id: entityId});
+        const serviceMap: Record<string, string> = {
+            play: 'media_play',
+            pause: 'media_pause',
+            next: 'media_next_track',
+            previous: 'media_previous_track'
+        };
+        const service = serviceMap[command] ?? command;
+        const payload: Record<string, unknown> = {
+            entity_id: entityId
+        };
+
+        if (command === 'volume_mute') {
+            payload.is_volume_muted = true;
+        }
+
+        await callService(connection, domain, service, payload);
     }
 
     public getBaseUrl(): string {
@@ -210,6 +228,27 @@ export class HomeAssistantApi {
 
     public getAccessToken(): string {
         return this._config.accessToken;
+    }
+
+    public async startSpotcast(options: SpotcastStartOptions): Promise<void> {
+        const connection = await this.connect();
+        await callService(connection, 'spotcast', 'start', options);
+    }
+
+    public async setMediaPlayerShuffle(entityId: string, shuffle: boolean): Promise<void> {
+        const connection = await this.connect();
+        await callService(connection, 'media_player', 'shuffle_set', {
+            entity_id: entityId,
+            shuffle
+        });
+    }
+
+    public async setMediaPlayerVolume(entityId: string, volumeLevel: number): Promise<void> {
+        const connection = await this.connect();
+        await callService(connection, 'media_player', 'volume_set', {
+            entity_id: entityId,
+            volume_level: volumeLevel
+        });
     }
 
 }
