@@ -11,9 +11,9 @@ export default defineConfig({
             manifest: {
                 name: "Photo Home Panel",
                 short_name: "Home Panel",
-                display: "standalone",
-                background_color: "#000",
-                theme_color: "#0076BF",
+                display: "fullscreen",
+                background_color: "#000000",
+                theme_color: "#000000",
                 icons: [
                     {
                         "src": "/icons/icon-48x48.png",
