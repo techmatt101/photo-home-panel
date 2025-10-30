@@ -1,85 +1,77 @@
 import {defineConfig} from 'vite';
 import minifyHTML from 'rollup-plugin-minify-html-literals';
-// import {VitePWA} from 'vite-plugin-pwa';
+import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig({
     plugins: [
         //// @ts-expect-error wrong type
         // minifyHTML.default(),
-        // VitePWA({
-        //     registerType: 'autoUpdate',
-        //     includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
-        //     manifest: {
-        //         name: 'Photo Slideshow',
-        //         short_name: 'Slideshow',
-        //         description: 'Photo slideshow with Home Assistant integration',
-        //         theme_color: '#000000',
-        //         background_color: '#000000',
-        //         display: 'standalone',
-        //         icons: [
-        //             {
-        //                 src: 'pwa-192x192.png',
-        //                 sizes: '192x192',
-        //                 type: 'image/png'
-        //             },
-        //             {
-        //                 src: 'pwa-512x512.png',
-        //                 sizes: '512x512',
-        //                 type: 'image/png'
-        //             },
-        //             {
-        //                 src: 'pwa-512x512.png',
-        //                 sizes: '512x512',
-        //                 type: 'image/png',
-        //                 purpose: 'maskable'
-        //             }
-        //         ]
-        //     },
-        //     workbox: {
-        //         runtimeCaching: [
-        //             {
-        //                 urlPattern: /^https:\/\/api\.photoprism\.local\/.*$/i,
-        //                 handler: 'CacheFirst',
-        //                 options: {
-        //                     cacheName: 'photoprism-api-cache',
-        //                     expiration: {
-        //                         maxEntries: 10,
-        //                         maxAgeSeconds: 60 * 60 * 24 // 24 hours
-        //                     },
-        //                     cacheableResponse: {
-        //                         statuses: [0, 200]
-        //                     }
-        //                 }
-        //             },
-        //             {
-        //                 urlPattern: /^https:\/\/homeassistant\.local\/api\/.*$/i,
-        //                 handler: 'NetworkFirst',
-        //                 options: {
-        //                     cacheName: 'home-assistant-api-cache',
-        //                     expiration: {
-        //                         maxEntries: 10,
-        //                         maxAgeSeconds: 60 * 5 // 5 minutes
-        //                     },
-        //                     cacheableResponse: {
-        //                         statuses: [0, 200]
-        //                     }
-        //                 }
-        //             }
-        //         ]
-        //     }
-        // })
+        VitePWA({
+            registerType: 'autoUpdate',
+            manifest: {
+                name: "Photo Home Panel",
+                short_name: "Home Panel",
+                display: "standalone",
+                background_color: "#000",
+                theme_color: "#0076BF",
+                icons: [
+                    {
+                        "src": "/icons/icon-48x48.png",
+                        "sizes": "48x48",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-72x72.png",
+                        "sizes": "72x72",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-96x96.png",
+                        "sizes": "96x96",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-128x128.png",
+                        "sizes": "128x128",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-144x144.png",
+                        "sizes": "144x144",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-152x152.png",
+                        "sizes": "152x152",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-192x192.png",
+                        "sizes": "192x192",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-256x256.png",
+                        "sizes": "256x256",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-384x384.png",
+                        "sizes": "384x384",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": "/icons/icon-512x512.png",
+                        "sizes": "512x512",
+                        "type": "image/png"
+                    }
+                ]
+            }
+        })
     ],
     server: {
         port: 3000,
-        open: true,
-        // proxy: {
-        //     '/api/photoprism': {
-        //         target: 'http://nas:2342',
-        //         changeOrigin: true,
-        //         rewrite: (path) => path.replace('/api/photoprism', '/api'),
-        //         secure: false
-        //     }
-        // }
+        open: true
     },
     build: {
         sourcemap: true,
