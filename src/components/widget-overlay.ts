@@ -194,6 +194,7 @@ export class WidgetOverlay extends LitElement {
                     @pointermove=${this._onHandlePointerMove}
                     @pointerup=${this._onHandlePointerUp}
                     @pointercancel=${this._onHandlePointerUp}
+                    @touchstart=${this._onHandleTouchStart}
                 ></div>
                 <div class="overlay__content">
                     <media-player></media-player>
@@ -244,10 +245,34 @@ export class WidgetOverlay extends LitElement {
         `;
     }
 
-    private _onHandlePointerDown(event: PointerEvent) {
+    // Shared drag helpers
+    private _startDrag(startY: number) {
         this._isDragging = true;
-        this._dragStartY = event.clientY;
+        this._dragStartY = startY;
         this._dragStartHeight = this._sheetHeight;
+    }
+
+    private _moveDrag(currentY: number) {
+        const delta = this._dragStartY - currentY;
+        const nextHeight = this._dragStartHeight + delta;
+        const clampedHeight = Math.min(
+            WidgetOverlay.EXPANDED_HEIGHT,
+            Math.max(WidgetOverlay.COLLAPSED_HEIGHT, nextHeight)
+        );
+
+        this._sheetHeight = clampedHeight;
+    }
+
+    private _endDrag() {
+        this._isDragging = false;
+        const midpoint = (WidgetOverlay.COLLAPSED_HEIGHT + WidgetOverlay.EXPANDED_HEIGHT) / 2;
+        const shouldExpand = this._sheetHeight >= midpoint;
+        this._sheetHeight = shouldExpand ? WidgetOverlay.EXPANDED_HEIGHT : WidgetOverlay.COLLAPSED_HEIGHT;
+        this._isExpanded = shouldExpand;
+    }
+
+    private _onHandlePointerDown(event: PointerEvent) {
+        this._startDrag(event.clientY);
 
         const target = event.currentTarget as HTMLElement;
         target.setPointerCapture(event.pointerId);
@@ -257,15 +282,7 @@ export class WidgetOverlay extends LitElement {
         if (!this._isDragging) {
             return;
         }
-
-        const delta = this._dragStartY - event.clientY;
-        const nextHeight = this._dragStartHeight + delta;
-        const clampedHeight = Math.min(
-            WidgetOverlay.EXPANDED_HEIGHT,
-            Math.max(WidgetOverlay.COLLAPSED_HEIGHT, nextHeight)
-        );
-
-        this._sheetHeight = clampedHeight;
+        this._moveDrag(event.clientY);
         event.preventDefault();
     }
 
@@ -278,15 +295,36 @@ export class WidgetOverlay extends LitElement {
         if (target.hasPointerCapture(event.pointerId)) {
             target.releasePointerCapture(event.pointerId);
         }
-
-        this._isDragging = false;
-
-        const midpoint = (WidgetOverlay.COLLAPSED_HEIGHT + WidgetOverlay.EXPANDED_HEIGHT) / 2;
-        const shouldExpand = this._sheetHeight >= midpoint;
-
-        this._sheetHeight = shouldExpand ? WidgetOverlay.EXPANDED_HEIGHT : WidgetOverlay.COLLAPSED_HEIGHT;
-        this._isExpanded = shouldExpand;
+        this._endDrag();
     }
+
+    // Touch fallback for browsers/devices without Pointer Events
+    private _onHandleTouchStart = (event: TouchEvent) => {
+        if (event.touches.length === 0) return;
+        const y = event.touches[0].clientY;
+        this._startDrag(y);
+        event.preventDefault();
+        // Track moves on the window so dragging continues outside the handle
+        window.addEventListener('touchmove', this._onTouchMove, { passive: false });
+        window.addEventListener('touchend', this._onTouchEnd);
+        window.addEventListener('touchcancel', this._onTouchEnd);
+    };
+
+    private _onTouchMove = (event: TouchEvent) => {
+        if (!this._isDragging) return;
+        const touch = event.touches[0] ?? event.changedTouches[0];
+        if (!touch) return;
+        this._moveDrag(touch.clientY);
+        event.preventDefault();
+    };
+
+    private _onTouchEnd = (_event: TouchEvent) => {
+        if (!this._isDragging) return;
+        this._endDrag();
+        window.removeEventListener('touchmove', this._onTouchMove as EventListener);
+        window.removeEventListener('touchend', this._onTouchEnd as EventListener);
+        window.removeEventListener('touchcancel', this._onTouchEnd as EventListener);
+    };
 
     private _setViewMode(mode: 'photos' | 'camera'): void {
         if (this.viewMode === mode) {
