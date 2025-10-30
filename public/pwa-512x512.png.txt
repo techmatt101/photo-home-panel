@@ -1,2 +1,0 @@
-This is a placeholder for pwa-512x512.png.
-In a real application, you would replace this with an actual 512x512 PNG image.

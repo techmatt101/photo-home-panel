@@ -1,2 +1,0 @@
-This is a placeholder for apple-touch-icon.png.
-In a real application, you would replace this with an actual 180x180 PNG image for iOS devices.
