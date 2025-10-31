@@ -1,4 +1,5 @@
 import { css, html, LitElement } from 'lit';
+import { Subject, takeUntil } from 'rxjs';
 import { customElement, state } from 'lit/decorators.js';
 import { photoPrismApi } from "../state";
 import { Slideshow, SlideshowImage } from "../services/slideshow";
@@ -133,6 +134,7 @@ export class PhotoSlideshow extends LitElement {
     @state() private _image: SlideshowImage | null = null;
 
     private _slideshow: Slideshow;
+    private _destroy$ = new Subject<void>();
 
     constructor() {
         super();
@@ -145,22 +147,11 @@ export class PhotoSlideshow extends LitElement {
     public async connectedCallback() {
         super.connectedCallback();
 
-        this._slideshow.image.subscribe((photoInfo) => {
+        this._slideshow.image.pipe(takeUntil(this._destroy$)).subscribe((photoInfo) => {
             this.transitionToNextImage(photoInfo);
-            // this._image = photoInfo;
-            // if (!this._image) {
-            //     // First image load - no transition needed
-            //     this._image = photoInfo;
-            // } else if (!this._transitioning) {
-            //     // Auto-play image change - apply transition
-            //     this.transitionToNextImage(() => {
-            //         this._nextImage = photoInfo;
-            //         return Promise.resolve();
-            //     });
-            // }
         });
 
-        // this._slideshow.autoPlay(1000 * 5).subscribe();
+        this._slideshow.autoPlay(1000 * 10).pipe(takeUntil(this._destroy$)).subscribe();
 
         try {
             await this._slideshow.nextImage();
@@ -182,6 +173,8 @@ export class PhotoSlideshow extends LitElement {
 
     public disconnectedCallback() {
         super.disconnectedCallback();
+        this._destroy$.next();
+        this._destroy$.complete();
     }
 
     public nextSlide() {
