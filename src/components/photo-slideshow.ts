@@ -1,5 +1,5 @@
 import { css, html, LitElement } from 'lit';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, fromEvent } from 'rxjs';
 import { customElement, state } from 'lit/decorators.js';
 import { photoPrismApi, settingsService } from "../state";
 import { Slideshow, SlideshowImage } from "../services/slideshow";
@@ -136,6 +136,7 @@ export class PhotoSlideshow extends LitElement {
     private _slideshow: Slideshow;
     private _destroy$ = new Subject<void>();
     private _autoPlayCancel$ = new Subject<void>();
+    private _autoPlaySeconds: number = 30;
 
     constructor() {
         super();
@@ -155,8 +156,22 @@ export class PhotoSlideshow extends LitElement {
         // Start autoplay using current settings (app reload applies changes)
         try {
             const s = settingsService.get();
-            this._startAutoPlay(Number(s.slideshow.autoPlaySeconds) || 30);
+            this._autoPlaySeconds = Number(s.slideshow.autoPlaySeconds) || 30;
+            this._startAutoPlay(this._autoPlaySeconds);
         } catch {}
+
+        // Pause/resume autoplay when document visibility changes (RxJS subscription)
+        fromEvent(document, 'visibilitychange')
+            .pipe(takeUntil(this._destroy$))
+            .subscribe(() => {
+                if (document.hidden) {
+                    console.log('Pause autoplay when not visible');
+                    this._autoPlayCancel$.next();
+                } else {
+                    console.log('Resume autoplay with last configured interval');
+                    this._startAutoPlay(this._autoPlaySeconds);
+                }
+            });
 
         try {
             await this._slideshow.nextImage();
@@ -182,6 +197,7 @@ export class PhotoSlideshow extends LitElement {
         this._destroy$.complete();
         this._autoPlayCancel$.next();
         this._autoPlayCancel$.complete();
+        // visibilitychange RxJS subscription is cleaned up by takeUntil(this._destroy$)
     }
 
     private _startAutoPlay(seconds: number): void {
@@ -194,6 +210,8 @@ export class PhotoSlideshow extends LitElement {
             )
             .subscribe();
     }
+
+    // visibilitychange handled via RxJS fromEvent in connectedCallback
 
     // settings updates are handled via subscription above
 
