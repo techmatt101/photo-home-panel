@@ -16,6 +16,9 @@ export class RootApp extends LitElement {
     @state() private _isLoading = true;
     @state() private _viewMode: 'photos' | 'camera' = 'photos';
     @state() private _isSettingsOpen = false;
+    private _doorbellRestoreTimer: number | null = null;
+    private _prevViewMode: 'photos' | 'camera' | null = null;
+    private static readonly DOORBELL_ENTITY_ID = 'binary_sensor.doorbell';
 
     public async connectedCallback() {
         super.connectedCallback();
@@ -25,6 +28,18 @@ export class RootApp extends LitElement {
         });
 
         window.addEventListener(EVENT_AUTH_SUCCESS, this.load.bind(this));
+
+        // Subscribe to doorbell events and switch to CCTV when ringing
+        try {
+            homeAssistantApi
+                .entity$<any>(RootApp.DOORBELL_ENTITY_ID)
+                .subscribe((entity) => {
+                    const isRinging = entity?.state === 'on' || entity?.state === 'ringing';
+                    if (isRinging) {
+                        this._switchToDoorbellView();
+                    }
+                });
+        } catch {}
     }
 
     public async load(): Promise<void> {
@@ -84,4 +99,24 @@ export class RootApp extends LitElement {
     private _handleSettingsUpdated = async (): Promise<void> => {
         await this.load();
     };
+
+    private _switchToDoorbellView(): void {
+        // Save current view to restore later
+        if (this._prevViewMode == null) {
+            this._prevViewMode = this._viewMode;
+        }
+        this._viewMode = 'camera';
+
+        // Reset restore timer
+        if (this._doorbellRestoreTimer) {
+            clearTimeout(this._doorbellRestoreTimer);
+        }
+        this._doorbellRestoreTimer = window.setTimeout(() => {
+            if (this._prevViewMode) {
+                this._viewMode = this._prevViewMode;
+                this._prevViewMode = null;
+            }
+            this._doorbellRestoreTimer = null;
+        }, 5 * 60 * 1000);
+    }
 }
