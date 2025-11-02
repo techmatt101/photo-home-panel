@@ -1,14 +1,10 @@
 export const EVENT_AUTH_REQUIRED = 'auth-required';
 export const EVENT_AUTH_SUCCESS = 'auth-success';
 export const EVENT_AUTH_FAILURE = 'auth-failure';
+import { SettingsService } from './settings.service';
 
 export interface AuthConfig {
     [key: string]: any;
-}
-
-export interface AuthData {
-    config: AuthConfig;
-    tokens?: any;
 }
 
 export interface AuthServiceRegistration {
@@ -40,13 +36,38 @@ export interface AuthFailureEventDetail {
     error: string;
 }
 
+/**
+ * Migrates legacy auth data from localStorage (key: `auth-<serviceId>`) to SettingsService.
+ * Returns the migrated AuthData if found; otherwise null.
+ */
+export function migrateLegacyAuth(serviceId: string, settings: SettingsService): void {
+    try {
+        const legacy = localStorage.getItem(`auth-${serviceId}`);
+        if (!legacy) return;
+
+        const parsed = JSON.parse(legacy) as AuthConfig;
+        if (parsed && parsed.config) {
+            settings.setAuth(serviceId, parsed.config);
+        }
+        localStorage.removeItem(`auth-${serviceId}`);
+        return;
+    } catch (error) {
+        console.error(`Failed legacy auth migration for ${serviceId}:`, error);
+        return;
+    }
+}
+
 export class AuthService {
     private registeredServices: Map<string, AuthServiceRegistration> = new Map();
-    private authData: Map<string, AuthData> = new Map();
+    private authData: Map<string, AuthConfig> = new Map();
+    private _settingsService: SettingsService;
+    
+    constructor(settingsService: SettingsService) {
+        this._settingsService = settingsService;
+    }
 
     public registerService(registration: AuthServiceRegistration): void {
         this.registeredServices.set(registration.id, registration);
-
         this.loadSavedCredentials(registration.id);
     }
 
@@ -60,22 +81,12 @@ export class AuthService {
 
     public getConfig<T>(type: string): T | null {
         const data = this.authData.get(type);
-        return data?.config as T || null;
+        return data as T || null;
     }
 
-    public getTokens(type: string): any | null {
-        const data = this.authData.get(type);
-        return data?.tokens || null;
-    }
-
-    public setAuth(type: string, config: AuthConfig, tokens?: any): void {
-        const data: AuthData = {config};
-        if (tokens) {
-            data.tokens = tokens;
-        }
-
-        this.authData.set(type, data);
-        this.saveCredentials(type, data);
+    public setAuth(type: string, config: AuthConfig): void {
+        this.authData.set(type, config);
+        this.saveCredentials(type, config);
     }
 
     public updateTokens(type: string, tokens: any): void {
@@ -90,7 +101,7 @@ export class AuthService {
         const registration = this.registeredServices.get(type);
         if (registration) {
             this.authData.delete(type);
-            localStorage.removeItem(`auth-${registration.id}`);
+            this._settingsService.clearAuth(registration.id);
         }
     }
 
@@ -134,24 +145,25 @@ export class AuthService {
                 return;
             }
 
-            const savedAuth = localStorage.getItem(`auth-${registration.id}`);
-            if (savedAuth) {
-                this.authData.set(type, JSON.parse(savedAuth));
+            const fromSettings = this._settingsService.getAuth(registration.id);
+            if (fromSettings) {
+                this.authData.set(type, fromSettings);
+                return;
             }
+
         } catch (error) {
             console.error(`Failed to load saved credentials for ${type}:`, error);
         }
     }
 
-    private saveCredentials(type: string, data: AuthData): void {
+    private saveCredentials(type: string, data: AuthConfig): void {
         try {
             const registration = this.registeredServices.get(type);
             if (!registration) {
                 console.error(`Service ${type} is not registered`);
                 return;
             }
-
-            localStorage.setItem(`auth-${registration.id}`, JSON.stringify(data));
+            this._settingsService.setAuth(registration.id, data);
         } catch (error) {
             console.error(`Failed to save credentials for ${type}:`, error);
         }

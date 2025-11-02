@@ -1,4 +1,4 @@
-import { AuthService } from "./services/auth.service";
+import { AuthService, migrateLegacyAuth } from "./services/auth.service";
 import { CalendarEventsService } from "./services/calendar-events-service";
 import { HomeAssistantApi } from "./intergrations/home-assistant/home-assistant-api";
 import { registerHomeAssistantAuth, registerPhotoPrismAuth } from "./auth";
@@ -7,8 +7,13 @@ import { ControlButtonsService } from "./services/control-buttons-service";
 import { MediaService } from "./services/media.service";
 import { WeatherService } from "./services/weather.service";
 import { TimerService } from "./services/timer.service";
+import { SettingsService } from "./services/settings.service";
 
-export const authService = new AuthService();
+export const settingsService = new SettingsService();
+export const authService = new AuthService(settingsService);
+
+migrateLegacyAuth('homeassistant', settingsService);
+migrateLegacyAuth('photoprism', settingsService);
 
 registerPhotoPrismAuth(authService);
 registerHomeAssistantAuth(authService);

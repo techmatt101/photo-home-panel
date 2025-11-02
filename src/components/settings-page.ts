@@ -5,7 +5,7 @@ import {
     AuthServiceRegistration,
     EVENT_AUTH_REQUIRED
 } from '../services/auth.service';
-import { authService } from '../state';
+import { authService, settingsService } from '../state';
 
 interface ServiceFormState {
     id: string;
@@ -220,11 +220,13 @@ export class SettingsPage extends LitElement {
     `;
 
     @state() private _forms: ServiceFormState[] = [];
+    @state() private _slideshowAutoSeconds: number = 30;
 
     public connectedCallback(): void {
         super.connectedCallback();
         this._loadServices();
         document.addEventListener('keydown', this._handleKeydown);
+        this._loadAppSettings();
     }
 
     public disconnectedCallback(): void {
@@ -248,6 +250,8 @@ export class SettingsPage extends LitElement {
                 </header>
 
                 ${this._forms.map((form) => this._renderServiceForm(form))}
+
+                ${this._renderSlideshowSettings()}
             </div>
         `;
     }
@@ -397,6 +401,58 @@ export class SettingsPage extends LitElement {
         if (event.key === 'Escape') {
             this._close();
         }
+    };
+
+    private _renderSlideshowSettings() {
+        return html`
+            <section class="service-card">
+                <div class="service-card__header">
+                    <div>
+                        <h3 class="service-card__title">Slideshow</h3>
+                        <p class="service-card__subtitle">Configure slideshow behavior.</p>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <label class="form-field">
+                        <span>Auto play interval (seconds)</span>
+                        <input
+                            type="number"
+                            min="1"
+                            .value=${String(this._slideshowAutoSeconds)}
+                            @input=${(e: Event) => this._onSlideshowSecondsInput(e)}
+                        />
+                        <span class="field-help">Time between images when auto play is on.</span>
+                    </label>
+                </div>
+
+                <div class="service-card__actions">
+                    <div class="action-group">
+                        <button class="primary" type="button" @click=${this._saveAppSettings}>Save changes</button>
+                        <button class="secondary" type="button" @click=${this._resetAppSettings}>Reset</button>
+                    </div>
+                </div>
+            </section>`;
+    }
+
+    private _onSlideshowSecondsInput(e: Event): void {
+        const v = Number((e.target as HTMLInputElement).value);
+        this._slideshowAutoSeconds = isFinite(v) && v > 0 ? Math.floor(v) : 1;
+    }
+
+    private _loadAppSettings(): void {
+        try {
+            const settings = settingsService.get();
+            this._slideshowAutoSeconds = Number(settings.slideshow.autoPlaySeconds) || 30;
+        } catch {}
+    }
+
+    private _saveAppSettings = (): void => {
+        settingsService.setSlideshowAutoPlaySeconds(this._slideshowAutoSeconds);
+    };
+
+    private _resetAppSettings = (): void => {
+        this._slideshowAutoSeconds = 30;
     };
 
     private _loadServices(): void {

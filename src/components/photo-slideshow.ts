@@ -1,7 +1,7 @@
 import { css, html, LitElement } from 'lit';
 import { Subject, takeUntil } from 'rxjs';
 import { customElement, state } from 'lit/decorators.js';
-import { photoPrismApi } from "../state";
+import { photoPrismApi, settingsService } from "../state";
 import { Slideshow, SlideshowImage } from "../services/slideshow";
 import { nextImage } from "../services/photo-service";
 
@@ -135,6 +135,7 @@ export class PhotoSlideshow extends LitElement {
 
     private _slideshow: Slideshow;
     private _destroy$ = new Subject<void>();
+    private _autoPlayCancel$ = new Subject<void>();
 
     constructor() {
         super();
@@ -151,7 +152,11 @@ export class PhotoSlideshow extends LitElement {
             this.transitionToNextImage(photoInfo);
         });
 
-        this._slideshow.autoPlay(1000 * 10).pipe(takeUntil(this._destroy$)).subscribe();
+        // Start autoplay using current settings (app reload applies changes)
+        try {
+            const s = settingsService.get();
+            this._startAutoPlay(Number(s.slideshow.autoPlaySeconds) || 30);
+        } catch {}
 
         try {
             await this._slideshow.nextImage();
@@ -175,7 +180,22 @@ export class PhotoSlideshow extends LitElement {
         super.disconnectedCallback();
         this._destroy$.next();
         this._destroy$.complete();
+        this._autoPlayCancel$.next();
+        this._autoPlayCancel$.complete();
     }
+
+    private _startAutoPlay(seconds: number): void {
+        this._autoPlayCancel$.next();
+        this._slideshow
+            .autoPlay(seconds * 1000)
+            .pipe(
+                takeUntil(this._destroy$),
+                takeUntil(this._autoPlayCancel$)
+            )
+            .subscribe();
+    }
+
+    // settings updates are handled via subscription above
 
     public nextSlide() {
         this._slideshow.nextImage();

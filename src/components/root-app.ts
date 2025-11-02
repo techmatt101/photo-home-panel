@@ -43,26 +43,27 @@ export class RootApp extends LitElement {
     }
 
     public render() {
+        if(this._isLoading) {
+            return html`<loading-spinner></loading-spinner><login-dialog></login-dialog>`;
+        }
+
+        if(this._isSettingsOpen) {
+            return html`<settings-page
+                @close-settings=${this._closeSettings}
+                @auth-settings-updated=${this._handleSettingsUpdated}
+            ></settings-page>`;
+        }
+
         return html`
-            ${this._isLoading ? html`
-                <loading-spinner></loading-spinner>
-                <login-dialog></login-dialog>` : html`
-                <widget-overlay
-                    .viewMode=${this._viewMode}
-                    @view-mode-change=${this._onViewModeChange}
-                    @open-settings=${this._openSettings}
-                ></widget-overlay>
-                ${this._viewMode === 'camera' ? html`
-                    <camera-view></camera-view>
-                ` : html`
-                    <photo-slideshow></photo-slideshow>
-                `}
-                ${this._isSettingsOpen ? html`
-                    <settings-page
-                        @close-settings=${this._closeSettings}
-                        @auth-settings-updated=${this._handleSettingsUpdated}
-                    ></settings-page>
-                ` : ''}
+            <widget-overlay
+                .viewMode=${this._viewMode}
+                @view-mode-change=${this._onViewModeChange}
+                @open-settings=${this._openSettings}
+            ></widget-overlay>
+            ${this._viewMode === 'camera' ? html`
+                <camera-view></camera-view>
+            ` : html`
+                <photo-slideshow></photo-slideshow>
             `}
         `;
     }
@@ -76,7 +77,8 @@ export class RootApp extends LitElement {
     };
 
     private _closeSettings = (): void => {
-        this._isSettingsOpen = false;
+        // Reload the app to apply new settings
+        window.location.reload();
     };
 
     private _handleSettingsUpdated = async (): Promise<void> => {
