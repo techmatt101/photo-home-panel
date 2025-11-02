@@ -18,8 +18,6 @@ export class WidgetOverlay extends LitElement {
     @state() private _sheetHeight = WidgetOverlay.COLLAPSED_HEIGHT;
     @state() private _isExpanded = false;
     @state() private _isDragging = false;
-    @state() private _batteryLevel: number | null = null;
-    @state() private _batteryCharging: boolean = false;
     @property({type: String}) public viewMode: 'photos' | 'camera' = 'photos';
 
     private _dragStartY = 0;
@@ -100,12 +98,6 @@ export class WidgetOverlay extends LitElement {
             gap: 16px;
         }
 
-        .header-right {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-        }
-
         .view-toggle__button {
             border: none;
             border-radius: 999px;
@@ -135,36 +127,6 @@ export class WidgetOverlay extends LitElement {
             cursor: pointer;
             font-size: 0.95rem;
             transition: background 0.2s ease;
-        }
-
-        .battery {
-            position: relative;
-            width: 28px;
-            height: 14px;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            border-radius: 3px;
-            box-sizing: content-box;
-        }
-
-        .battery::after {
-            content: '';
-            position: absolute;
-            right: -5px;
-            top: 3px;
-            width: 3px;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.8);
-            border-radius: 1px;
-        }
-
-        .battery__level {
-            height: 100%;
-            transition: width 0.3s ease, background 0.3s ease;
-        }
-
-        .battery__text {
-            font-size: 0.85rem;
-            opacity: 0.85;
         }
 
         .settings-button:hover {
@@ -273,59 +235,12 @@ export class WidgetOverlay extends LitElement {
                                     CCTV
                                 </button>
                             </div>
-                            <div class="header-right">
-                                ${this.renderBattery()}
-                                <button class="settings-button" type="button" @click=${this._openSettings}>
-                                    Settings
-                                </button>
-                            </div>
+                            <button class="settings-button" type="button" @click=${this._openSettings}>
+                                Settings
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-    }
-
-    public async connectedCallback() {
-        super.connectedCallback();
-        const nav: any = navigator as any;
-        if (nav && typeof nav.getBattery === 'function') {
-            try {
-                const battery: any = await nav.getBattery();
-                const update = () => {
-                    this._batteryLevel = typeof battery.level === 'number' ? battery.level : null;
-                    this._batteryCharging = !!battery.charging;
-                };
-                update();
-                battery.addEventListener('levelchange', update);
-                battery.addEventListener('chargingchange', update);
-                (this as any)._batteryRef = battery;
-            } catch {}
-        }
-    }
-
-    public disconnectedCallback() {
-        super.disconnectedCallback();
-        const battery: any = (this as any)._batteryRef;
-        if (battery) {
-            try { battery.removeEventListener('levelchange'); } catch {}
-            try { battery.removeEventListener('chargingchange'); } catch {}
-            (this as any)._batteryRef = null;
-        }
-    }
-
-    private renderBattery() {
-        if (this._batteryLevel == null) return html``;
-        const pct = Math.round(this._batteryLevel * 100);
-        const color = this._batteryCharging
-            ? '#8bc34a'
-            : (pct <= 20 ? '#ff5252' : 'rgba(255,255,255,0.9)');
-        return html`
-            <div style="display: inline-flex; align-items: center; gap: 8px;">
-                <div class="battery" aria-label="Battery level ${pct}%">
-                    <div class="battery__level" style=${styleMap({ width: pct + '%', background: color })}></div>
-                </div>
-                <span class="battery__text">${pct}%${this._batteryCharging ? ' ⚡' : ''}</span>
             </div>
         `;
     }
@@ -433,3 +348,4 @@ export class WidgetOverlay extends LitElement {
     };
 
 }
+
