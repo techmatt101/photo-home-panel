@@ -10,6 +10,7 @@ import './camera-view';
 import './settings-page';
 import { authService, homeAssistantApi, photoPrismApi } from "../state";
 import { EVENT_AUTH_SUCCESS } from "../services/auth.service";
+import { fromEvent, takeUntil } from "rxjs";
 
 @customElement('root-app')
 export class RootApp extends LitElement {
@@ -40,6 +41,15 @@ export class RootApp extends LitElement {
                     }
                 });
         } catch {}
+
+        fromEvent(document, 'visibilitychange')
+            .subscribe(() => {
+                if (document.hidden) {
+                    homeAssistantApi.disconnect();
+                } else {
+                    homeAssistantApi.initialize();
+                }
+            });
     }
 
     public async load(): Promise<void> {

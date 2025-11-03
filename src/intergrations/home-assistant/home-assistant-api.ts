@@ -5,7 +5,6 @@ import { BehaviorSubject, Observable } from 'rxjs';
 export class HomeAssistantApi {
     private _config: HomeAssistantConfig;
     private _connection: Connection | null = null;
-    private _connectionPromise: Promise<Connection> | null = null;
     private _entities: Record<string, any> = {};
 
     private _entitiesSubject: BehaviorSubject<Record<string, any>> = new BehaviorSubject<Record<string, any>>({});
@@ -16,14 +15,19 @@ export class HomeAssistantApi {
     }
 
     public async initialize(): Promise<void> {
-        await this.connect();
+        const auth = createLongLivedTokenAuth(
+            this._config.url,
+            this._config.accessToken
+        );
+
+        this._connection = await createConnection({auth});
+
         subscribeEntities(this._connection!, (entities) => {
             this._entities = entities;
             this._entitiesSubject.next(entities);
 
             console.log(entities);
             for (const [entityId, entity] of Object.entries(entities)) {
-                // Update RxJS subjects
                 if (!this._entitySubjects.has(entityId)) {
                     this._entitySubjects.set(entityId, new BehaviorSubject(entity));
                 } else {
@@ -31,25 +35,6 @@ export class HomeAssistantApi {
                 }
             }
         });
-    }
-
-    public async connect(): Promise<Connection> {
-        if (this._connectionPromise) {
-            return this._connectionPromise;
-        }
-
-        this._connectionPromise = (async () => {
-            const auth = createLongLivedTokenAuth(
-                this._config.url,
-                this._config.accessToken
-            );
-
-            this._connection = await createConnection({auth});
-
-            return this._connection;
-        })();
-
-        return this._connectionPromise;
     }
 
     public entities$(): Observable<Record<string, any>> {
@@ -73,7 +58,13 @@ export class HomeAssistantApi {
     }
 
     public async callService(domain: string, service: string, serviceData?: object, target?: HassServiceTarget): Promise<void> {
-        const connection = await this.connect();
-        await callService(connection, domain, service, serviceData, target);
+        await callService(this._connection!, domain, service, serviceData, target);
+    }
+
+    public async disconnect(): Promise<void> {
+        if (this._connection) {
+            this._connection.close();
+            this._connection = null;
+        }
     }
 }
