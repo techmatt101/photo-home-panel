@@ -13,9 +13,6 @@ import { SettingsService } from "./services/settings.service";
 export const settingsService = new SettingsService();
 export const authService = new AuthService(settingsService);
 
-migrateLegacyAuth('homeassistant', settingsService);
-migrateLegacyAuth('photoprism', settingsService);
-
 registerPhotoPrismAuth(authService);
 registerHomeAssistantAuth(authService);
 

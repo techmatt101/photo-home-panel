@@ -27,36 +27,6 @@ export interface AuthRequiredEventDetail {
     message?: string;
 }
 
-export interface AuthSuccessEventDetail {
-    type: string;
-}
-
-export interface AuthFailureEventDetail {
-    type: string;
-    error: string;
-}
-
-/**
- * Migrates legacy auth data from localStorage (key: `auth-<serviceId>`) to SettingsService.
- * Returns the migrated AuthData if found; otherwise null.
- */
-export function migrateLegacyAuth(serviceId: string, settings: SettingsService): void {
-    try {
-        const legacy = localStorage.getItem(`auth-${serviceId}`);
-        if (!legacy) return;
-
-        const parsed = JSON.parse(legacy) as AuthConfig;
-        if (parsed && parsed.config) {
-            settings.setAuth(serviceId, parsed.config);
-        }
-        localStorage.removeItem(`auth-${serviceId}`);
-        return;
-    } catch (error) {
-        console.error(`Failed legacy auth migration for ${serviceId}:`, error);
-        return;
-    }
-}
-
 export class AuthService {
     private registeredServices: Map<string, AuthServiceRegistration> = new Map();
     private authData: Map<string, AuthConfig> = new Map();
