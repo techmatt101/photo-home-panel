@@ -102,7 +102,8 @@ export class CameraView extends LitElement {
         super.connectedCallback();
 
         try {
-            const states = await homeAssistant.getStates();
+            // const states = await homeAssistant.getStates();
+            const states: any[] = [];
             const cameraEntries: CameraOption[] = states
                 .filter((s: any) => typeof s?.entity_id === 'string' && s.entity_id.startsWith('camera.'))
                 .map((s: any) => ({ id: s.entity_id as string, entity: s as CameraEntity }));

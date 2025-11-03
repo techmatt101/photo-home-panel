@@ -1,14 +1,8 @@
 import { CalendarEntity } from '../intergrations/home-assistant/home-assistant.types';
-import { HomeAssistantFacade } from "../intergrations/home-assistant/home-assistant-facade";
 
 export class CalendarEventsService {
     private _calendarEvents: CalendarEntity[] = [];
     private _eventsSubscribers: ((events: CalendarEntity[]) => void)[] = [];
-    private _ha: HomeAssistantFacade;
-
-    constructor(homeAssistant: HomeAssistantFacade) {
-        this._ha = homeAssistant;
-    }
 
     public async initialize(): Promise<void> {
         await this.loadCalendarEvents();
@@ -79,12 +73,5 @@ export class CalendarEventsService {
         // } catch (error) {
         //     console.error('Error loading calendar events:', error);
         // }
-    }
-
-    private notifySubscribers(): void {
-        const upcomingEvents = this.getUpcomingEvents();
-        for (const callback of this._eventsSubscribers) {
-            callback(upcomingEvents);
-        }
     }
 }

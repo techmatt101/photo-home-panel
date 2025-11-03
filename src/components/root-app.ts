@@ -1,5 +1,8 @@
 import { html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import { authService, homeAssistantApi, photoPrismApi } from "../state";
+import { EVENT_AUTH_SUCCESS } from "../services/auth.service";
+import { fromEvent } from "rxjs";
 
 import './photo-slideshow';
 import './info-overlay';
@@ -8,9 +11,6 @@ import './loading-spinner';
 import './widget-overlay';
 import './camera-view';
 import './settings-page';
-import { authService, homeAssistantApi, photoPrismApi } from "../state";
-import { EVENT_AUTH_SUCCESS } from "../services/auth.service";
-import { fromEvent, takeUntil } from "rxjs";
 
 @customElement('root-app')
 export class RootApp extends LitElement {
