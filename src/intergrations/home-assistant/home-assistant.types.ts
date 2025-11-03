@@ -1,4 +1,3 @@
-// Types for Home Assistant entities
 export interface WeatherEntity {
     state: string;
     attributes: {
@@ -109,18 +108,7 @@ export interface SpotcastStartOptions {
     start_volume?: number;
 }
 
-// Configuration for Home Assistant API
 export interface HomeAssistantConfig {
     url: string;
     accessToken: string;
-}
-
-// Saved authentication data
-export interface SavedAuth {
-    hassUrl: string;
-    clientId: string;
-    expires: number;
-    refresh_token: string;
-    access_token: string;
-    expires_in: number;
 }

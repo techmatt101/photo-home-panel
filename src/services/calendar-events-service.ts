@@ -1,5 +1,6 @@
 import { CalendarEntity } from '../intergrations/home-assistant/home-assistant.types';
 import { HomeAssistantApi } from "../intergrations/home-assistant/home-assistant-api";
+import { firstValueFrom } from "rxjs";
 
 export class CalendarEventsService {
     private _calendarEvents: CalendarEntity[] = [];
@@ -68,7 +69,16 @@ export class CalendarEventsService {
 
     private async loadCalendarEvents(): Promise<void> {
         try {
-            this._calendarEvents = await this._homeAssistantApi.getCalendarEvents();
+            const entities = await firstValueFrom(this._homeAssistantApi.entities$());
+
+            const calendarEntities: CalendarEntity[] = [];
+            for (const [entityId, entity] of Object.entries(entities)) {
+                if (entityId.startsWith('calendar.')) {
+                    calendarEntities.push(entity as CalendarEntity);
+                }
+            }
+
+            this._calendarEvents = calendarEntities;
             // Notify all subscribers
             this.notifySubscribers();
         } catch (error) {

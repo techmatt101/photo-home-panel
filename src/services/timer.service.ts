@@ -24,7 +24,14 @@ export class TimerService {
         this._matchers = matchers.map((matcher) => matcher.toLowerCase());
 
         this.timers$ = combineLatest([
-            this._homeAssistantApi.timers$().pipe(startWith([] as TimerEntity[])),
+            this._homeAssistantApi.entities$().pipe(
+                map((entities) => Object.entries(entities)
+                    .filter(([entityId]) => entityId.startsWith('timer.'))
+                    .map(([entityId, entity]) => ({
+                        ...(entity as TimerEntity),
+                        entity_id: entityId
+                    })))
+            ).pipe(startWith([] as TimerEntity[])),
             interval(1000).pipe(startWith(0))
         ]).pipe(
             map(([timers]) => this._mapToViewModels(timers)),
@@ -34,19 +41,30 @@ export class TimerService {
 
     public async startTimer(entityId: string, durationSeconds?: number): Promise<void> {
         const payload = durationSeconds != null ? {duration: this._formatDuration(durationSeconds)} : {};
-        await this._homeAssistantApi.controlTimer(entityId, 'start', payload);
+        await this.controlTimer(entityId, 'start', payload);
     }
 
     public async pauseTimer(entityId: string): Promise<void> {
-        await this._homeAssistantApi.controlTimer(entityId, 'pause');
+        await this.controlTimer(entityId, 'pause');
     }
 
     public async cancelTimer(entityId: string): Promise<void> {
-        await this._homeAssistantApi.controlTimer(entityId, 'cancel');
+        await this.controlTimer(entityId, 'cancel');
     }
 
     public async finishTimer(entityId: string): Promise<void> {
-        await this._homeAssistantApi.controlTimer(entityId, 'finish');
+        await this.controlTimer(entityId, 'finish');
+    }
+
+    public async controlTimer(
+        entityId: string,
+        command: 'start' | 'pause' | 'cancel' | 'finish',
+        payload: Record<string, unknown> = {}
+    ): Promise<void> {
+        await this._homeAssistantApi.callService( 'timer', command, {
+            entity_id: entityId,
+            ...payload
+        });
     }
 
     private _mapToViewModels(entities: TimerEntity[]): TimerViewModel[] {

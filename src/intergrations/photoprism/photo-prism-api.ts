@@ -9,7 +9,6 @@ export class PhotoPrismApi {
     }
 
     public async initialize(): Promise<void> {
-        console.log(this._options.baseUrl);
         const response = await fetch(`${this._options.baseUrl}/api/v1/config`, {
             method: 'GET',
             headers: this.getHeaders()

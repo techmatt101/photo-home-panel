@@ -50,22 +50,22 @@ export class MediaService {
     }
 
     public async setShuffleState(shuffle: boolean): Promise<void> {
-        await this._homeAssistantApi.setMediaPlayerShuffle(
-            MEDIA_PLAYER_ENTITY_ID,
+        await this._homeAssistantApi.callService('media_player', 'shuffle_set', {
+            entity_id: MEDIA_PLAYER_ENTITY_ID,
             shuffle
-        );
+        });
     }
 
     public async setVolumePercent(volumePercent: number): Promise<void> {
         const clampedPercent = Math.max(0, Math.min(100, volumePercent));
-        await this._homeAssistantApi.setMediaPlayerVolume(
-            MEDIA_PLAYER_ENTITY_ID,
-            clampedPercent / 100
-        );
+        await this._homeAssistantApi.callService('media_player', 'volume_set', {
+            entity_id: MEDIA_PLAYER_ENTITY_ID,
+            volume_level: clampedPercent / 100
+        });
     }
 
     public async startKitchenMusic(): Promise<void> {
-        await this._homeAssistantApi.startSpotcast(MediaService.SPOTCAST_DEFAULTS);
+        await this._homeAssistantApi.callService('spotcast', 'start', MediaService.SPOTCAST_DEFAULTS);
     }
 
     public openMusicPlayer(): void {
@@ -79,11 +79,23 @@ export class MediaService {
         }
     }
 
-    private async _mediaCommand(command: 'play' | 'pause' | 'next' | 'previous'): Promise<void> {
-        await this._homeAssistantApi.mediaPlayerCommand(
-            MEDIA_PLAYER_ENTITY_ID,
-            command
-        );
+    private async _mediaCommand(command: 'play' | 'pause' | 'next' | 'previous' | 'volume_mute'): Promise<void> {
+        const serviceMap: Record<string, string> = {
+            play: 'media_play',
+            pause: 'media_pause',
+            next: 'media_next_track',
+            previous: 'media_previous_track'
+        };
+        const service = serviceMap[command] ?? command;
+        const payload: Record<string, unknown> = {
+            entity_id: MEDIA_PLAYER_ENTITY_ID
+        };
+
+        if (command === 'volume_mute') {
+            payload.is_volume_muted = true;
+        }
+
+        await this._homeAssistantApi.callService('media_player', service, payload);
     }
 
     private _mapToViewModel(entity: MediaPlayerEntity | null): MediaPlayerViewModel {
@@ -139,3 +151,4 @@ export class MediaService {
         }
     }
 }
+
