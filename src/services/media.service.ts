@@ -1,5 +1,5 @@
 import { MediaPlayerEntity, SpotcastStartOptions } from '../intergrations/home-assistant/home-assistant.types';
-import { HomeAssistantFacade } from "../intergrations/home-assistant/home-assistant-facade";
+import { HomeAssistantFacade } from "../intergrations/home-assistant/home-assistant.facade";
 import { map, Observable } from "rxjs";
 
 const MEDIA_PLAYER_ENTITY_ID = 'media_player.spotify_matthew';

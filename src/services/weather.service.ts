@@ -1,5 +1,5 @@
 import { WeatherEntity } from '../intergrations/home-assistant/home-assistant.types';
-import { HomeAssistantFacade } from "../intergrations/home-assistant/home-assistant-facade";
+import { HomeAssistantFacade } from "../intergrations/home-assistant/home-assistant.facade";
 import { Observable } from "rxjs";
 
 export class WeatherService {

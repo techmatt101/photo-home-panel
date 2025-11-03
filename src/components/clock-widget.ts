@@ -1,6 +1,6 @@
 import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
-import { minuteSync } from "../services/time-service";
+import { minuteSync } from "../services/time.service";
 import { format } from 'date-fns';
 
 @customElement('clock-widget')

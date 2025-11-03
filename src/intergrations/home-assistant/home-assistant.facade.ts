@@ -1,5 +1,5 @@
 import { Observable } from 'rxjs';
-import { HomeAssistantApi } from './home-assistant-api';
+import { HomeAssistantApi } from './home-assistant.api';
 import { SpotcastStartOptions } from './home-assistant.types';
 
 export class HomeAssistantFacade {

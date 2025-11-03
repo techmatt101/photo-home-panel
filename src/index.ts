@@ -13,4 +13,4 @@ import './components/root-app';
 //     },
 // });
 
-console.log('Photo Slideshow PWA initialized ✨');
+console.log('Photo SlideshowService PWA initialized ✨');

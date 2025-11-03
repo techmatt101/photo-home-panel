@@ -1,4 +1,4 @@
-import { PhotoInfo } from "./photo-service";
+import { PhotoInfo } from "./photo.service";
 import { interval, Observable, Subject, switchMap } from "rxjs";
 
 export interface SlideshowImage {
@@ -6,7 +6,7 @@ export interface SlideshowImage {
     image: HTMLImageElement;
 }
 
-export class Slideshow {
+export class SlideshowService {
 
     public image = new Subject<SlideshowImage>();
 

@@ -2,8 +2,8 @@ import { css, html, LitElement } from 'lit';
 import { Subject, takeUntil, fromEvent } from 'rxjs';
 import { customElement, state } from 'lit/decorators.js';
 import { photoPrismApi, settingsService } from "../state";
-import { Slideshow, SlideshowImage } from "../services/slideshow";
-import { nextImage } from "../services/photo-service";
+import { SlideshowService, SlideshowImage } from "../services/slideshow.service";
+import { nextImage } from "../services/photo.service";
 
 @customElement('photo-slideshow')
 export class PhotoSlideshow extends LitElement {
@@ -133,7 +133,7 @@ export class PhotoSlideshow extends LitElement {
     @state() private _nextImage: SlideshowImage | null = null;
     @state() private _image: SlideshowImage | null = null;
 
-    private _slideshow: Slideshow;
+    private _slideshow: SlideshowService;
     private _destroy$ = new Subject<void>();
     private _autoPlayCancel$ = new Subject<void>();
     private _autoPlaySeconds: number = 30;
@@ -141,7 +141,7 @@ export class PhotoSlideshow extends LitElement {
     constructor() {
         super();
         const orientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
-        this._slideshow = new Slideshow(nextImage(photoPrismApi, orientation));
+        this._slideshow = new SlideshowService(nextImage(photoPrismApi, orientation));
 
         // window.addEventListener('resize', this._handleResize.bind(this));
     }

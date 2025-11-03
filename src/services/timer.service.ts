@@ -1,6 +1,6 @@
 import { combineLatest, from, interval, map, Observable, of, shareReplay, startWith, switchMap } from 'rxjs';
 import { TimerEntity } from '../intergrations/home-assistant/home-assistant.types';
-import { HomeAssistantFacade } from '../intergrations/home-assistant/home-assistant-facade';
+import { HomeAssistantFacade } from '../intergrations/home-assistant/home-assistant.facade';
 
 const DEFAULT_KITCHEN_TIMER_MATCHERS = ['kitchen', 'google'];
 
