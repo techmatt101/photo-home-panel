@@ -1,29 +1,25 @@
 import { LightEntity, MediaPlayerEntity, VacuumEntity } from '../intergrations/home-assistant/home-assistant.types';
-import { HomeAssistantApi } from "../intergrations/home-assistant/home-assistant-api";
+import { HomeAssistantFacade } from "../intergrations/home-assistant/home-assistant-facade";
 import { Observable } from 'rxjs';
 
 export class ControlButtonsService {
     public tvStatus$: Observable<MediaPlayerEntity>;
     public lightStatus$: Observable<LightEntity>;
     public vacuumStatus$: Observable<VacuumEntity>;
-    private _homeAssistantApi: HomeAssistantApi;
+    private _ha: HomeAssistantFacade;
 
-    constructor(homeAssistantApi: HomeAssistantApi) {
-        this._homeAssistantApi = homeAssistantApi;
-        this.tvStatus$ = this._homeAssistantApi.entity$<MediaPlayerEntity>('media_player.tv');
-        this.lightStatus$ = this._homeAssistantApi.entity$<LightEntity>('light.kitchen');
-        this.vacuumStatus$ = this._homeAssistantApi.entity$<VacuumEntity>('vacuum.cleaner');
+    constructor(homeAssistant: HomeAssistantFacade) {
+        this._ha = homeAssistant;
+        this.tvStatus$ = this._ha.entity$<MediaPlayerEntity>('media_player.tv');
+        this.lightStatus$ = this._ha.entity$<LightEntity>('light.kitchen');
+        this.vacuumStatus$ = this._ha.entity$<VacuumEntity>('vacuum.cleaner');
     }
 
     public async toggleLight(entityId: string): Promise<void> {
-        const domain = 'light';
-        const service = 'toggle';
-        await this._homeAssistantApi.callService(domain, service, {entity_id: entityId});
+        await this._ha.lightToggle(entityId);
     }
 
     public async startVacuum(): Promise<void> {
-        const domain = 'vacuum';
-        const service = 'start';
-        await this._homeAssistantApi.callService(domain, service, {entity_id: 'vacuum.cleaner'});
+        await this._ha.vacuumStart('vacuum.cleaner');
     }
 }

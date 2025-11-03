@@ -3,7 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { Subscription } from 'rxjs';
 import { classMap } from 'lit/directives/class-map.js';
 import { CameraEntity } from '../intergrations/home-assistant/home-assistant.types';
-import { homeAssistantApi } from '../state';
+import { homeAssistant, homeAssistantApi } from '../state';
 
 interface CameraOption {
     id: string;
@@ -95,23 +95,17 @@ export class CameraView extends LitElement {
     @state() private _cacheBuster = Date.now();
     @state() private _currentAccessToken: string | null = null;
 
-    private _entitiesSubscription: Subscription | null = null;
+    private _selectedCameraSubscription: Subscription | null = null;
     private _snapshotPollTimer: number | null = null;
 
-    public connectedCallback(): void {
+    public async connectedCallback(): Promise<void> {
         super.connectedCallback();
 
-        this._entitiesSubscription = homeAssistantApi.entities$().subscribe((entities) => {
-            const cameraEntries: CameraOption[] = [];
-            for (const [entityId, entity] of Object.entries(entities)) {
-                if (!entityId.startsWith('camera.')) {
-                    continue;
-                }
-                cameraEntries.push({
-                    id: entityId,
-                    entity: entity as CameraEntity
-                });
-            }
+        try {
+            const states = await homeAssistant.getStates();
+            const cameraEntries: CameraOption[] = states
+                .filter((s: any) => typeof s?.entity_id === 'string' && s.entity_id.startsWith('camera.'))
+                .map((s: any) => ({ id: s.entity_id as string, entity: s as CameraEntity }));
 
             this._cameras = cameraEntries.sort((a, b) => {
                 const nameA = a.entity?.attributes?.friendly_name ?? a.id;
@@ -129,7 +123,6 @@ export class CameraView extends LitElement {
             }
 
             const selectedCamera = this._getSelectedCamera();
-
             const nextToken = selectedCamera?.entity?.attributes?.access_token ?? null;
             if (nextToken !== this._currentAccessToken) {
                 this._currentAccessToken = nextToken;
@@ -137,12 +130,15 @@ export class CameraView extends LitElement {
             }
 
             this._syncSnapshotPolling(selectedCamera);
-        });
+            this._subscribeToSelectedCamera();
+        } catch (e) {
+            console.error('Failed to load camera states', e);
+        }
     }
 
     public disconnectedCallback(): void {
-        this._entitiesSubscription?.unsubscribe();
-        this._entitiesSubscription = null;
+        this._selectedCameraSubscription?.unsubscribe();
+        this._selectedCameraSubscription = null;
         this._stopSnapshotPolling();
         super.disconnectedCallback();
     }
@@ -216,6 +212,7 @@ export class CameraView extends LitElement {
         this._currentAccessToken = selectedCamera?.entity?.attributes?.access_token ?? null;
         this._cacheBuster = Date.now();
         this._syncSnapshotPolling(selectedCamera);
+        this._subscribeToSelectedCamera();
     }
 
     private _buildStreamUrl(camera: CameraOption): string | null {
@@ -293,5 +290,27 @@ export class CameraView extends LitElement {
             clearInterval(this._snapshotPollTimer);
             this._snapshotPollTimer = null;
         }
+    }
+
+    private _subscribeToSelectedCamera(): void {
+        this._selectedCameraSubscription?.unsubscribe();
+        this._selectedCameraSubscription = null;
+
+        const selected = this._getSelectedCamera();
+        if (!selected) return;
+
+        this._selectedCameraSubscription = homeAssistant
+            .entity$<CameraEntity>(selected.id)
+            .subscribe((entity) => {
+                if (!entity) return;
+                // Update the entry in _cameras for the selected id
+                this._cameras = this._cameras.map((c) => c.id === selected.id ? { ...c, entity } : c);
+
+                const nextToken = entity?.attributes?.access_token ?? null;
+                if (nextToken !== this._currentAccessToken) {
+                    this._currentAccessToken = nextToken;
+                    this._cacheBuster = Date.now();
+                }
+            });
     }
 }

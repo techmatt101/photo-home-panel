@@ -1,14 +1,13 @@
 import { CalendarEntity } from '../intergrations/home-assistant/home-assistant.types';
-import { HomeAssistantApi } from "../intergrations/home-assistant/home-assistant-api";
-import { firstValueFrom } from "rxjs";
+import { HomeAssistantFacade } from "../intergrations/home-assistant/home-assistant-facade";
 
 export class CalendarEventsService {
     private _calendarEvents: CalendarEntity[] = [];
     private _eventsSubscribers: ((events: CalendarEntity[]) => void)[] = [];
-    private _homeAssistantApi: HomeAssistantApi;
+    private _ha: HomeAssistantFacade;
 
-    constructor(homeAssistantApi: HomeAssistantApi) {
-        this._homeAssistantApi = homeAssistantApi;
+    constructor(homeAssistant: HomeAssistantFacade) {
+        this._ha = homeAssistant;
     }
 
     public async initialize(): Promise<void> {
@@ -68,22 +67,18 @@ export class CalendarEventsService {
     }
 
     private async loadCalendarEvents(): Promise<void> {
-        try {
-            const entities = await firstValueFrom(this._homeAssistantApi.entities$());
+        // try {
+        //     const states = await this._ha.getStates();
+        //     const calendarEntities: CalendarEntity[] = states
+        //         .filter((s: any) => typeof s?.entity_id === 'string' && s.entity_id.startsWith('calendar.'))
+        //         .map((s: any) => s as CalendarEntity);
 
-            const calendarEntities: CalendarEntity[] = [];
-            for (const [entityId, entity] of Object.entries(entities)) {
-                if (entityId.startsWith('calendar.')) {
-                    calendarEntities.push(entity as CalendarEntity);
-                }
-            }
-
-            this._calendarEvents = calendarEntities;
-            // Notify all subscribers
-            this.notifySubscribers();
-        } catch (error) {
-            console.error('Error loading calendar events:', error);
-        }
+        //     this._calendarEvents = calendarEntities;
+        //     // Notify all subscribers
+        //     this.notifySubscribers();
+        // } catch (error) {
+        //     console.error('Error loading calendar events:', error);
+        // }
     }
 
     private notifySubscribers(): void {

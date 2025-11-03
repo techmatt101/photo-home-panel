@@ -1,6 +1,6 @@
-import { combineLatest, interval, map, Observable, shareReplay, startWith } from 'rxjs';
+import { combineLatest, from, interval, map, Observable, of, shareReplay, startWith, switchMap } from 'rxjs';
 import { TimerEntity } from '../intergrations/home-assistant/home-assistant.types';
-import { HomeAssistantApi } from '../intergrations/home-assistant/home-assistant-api';
+import { HomeAssistantFacade } from '../intergrations/home-assistant/home-assistant-facade';
 
 const DEFAULT_KITCHEN_TIMER_MATCHERS = ['kitchen', 'google'];
 
@@ -16,22 +16,15 @@ export interface TimerViewModel {
 
 export class TimerService {
     public readonly timers$: Observable<TimerViewModel[]>;
-    private _homeAssistantApi: HomeAssistantApi;
+    private _ha: HomeAssistantFacade;
     private _matchers: string[];
 
-    constructor(homeAssistantApi: HomeAssistantApi, matchers: string[] = DEFAULT_KITCHEN_TIMER_MATCHERS) {
-        this._homeAssistantApi = homeAssistantApi;
+    constructor(homeAssistant: HomeAssistantFacade, matchers: string[] = DEFAULT_KITCHEN_TIMER_MATCHERS) {
+        this._ha = homeAssistant;
         this._matchers = matchers.map((matcher) => matcher.toLowerCase());
 
         this.timers$ = combineLatest([
-            this._homeAssistantApi.entities$().pipe(
-                map((entities) => Object.entries(entities)
-                    .filter(([entityId]) => entityId.startsWith('timer.'))
-                    .map(([entityId, entity]) => ({
-                        ...(entity as TimerEntity),
-                        entity_id: entityId
-                    })))
-            ).pipe(startWith([] as TimerEntity[])),
+            this._entityTimers$(),
             interval(1000).pipe(startWith(0))
         ]).pipe(
             map(([timers]) => this._mapToViewModels(timers)),
@@ -61,10 +54,17 @@ export class TimerService {
         command: 'start' | 'pause' | 'cancel' | 'finish',
         payload: Record<string, unknown> = {}
     ): Promise<void> {
-        await this._homeAssistantApi.callService( 'timer', command, {
-            entity_id: entityId,
-            ...payload
-        });
+        await this._ha.timerControl(entityId, command, payload);
+    }
+
+    private _entityTimers$(): Observable<TimerEntity[]> {
+        return from(this._ha.listEntityIdsByDomain('timer')).pipe(
+            switchMap((ids) => {
+                if (!ids || ids.length === 0) return of([] as TimerEntity[]);
+                return combineLatest(ids.map((id) => this._ha.entity$<TimerEntity>(id)));
+            }),
+            startWith([] as TimerEntity[])
+        );
     }
 
     private _mapToViewModels(entities: TimerEntity[]): TimerViewModel[] {

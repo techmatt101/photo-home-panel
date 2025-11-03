@@ -1,5 +1,5 @@
 import { MediaPlayerEntity, SpotcastStartOptions } from '../intergrations/home-assistant/home-assistant.types';
-import { HomeAssistantApi } from "../intergrations/home-assistant/home-assistant-api";
+import { HomeAssistantFacade } from "../intergrations/home-assistant/home-assistant-facade";
 import { map, Observable } from "rxjs";
 
 const MEDIA_PLAYER_ENTITY_ID = 'media_player.spotify_matthew';
@@ -21,7 +21,7 @@ export interface MediaPlayerViewModel {
 
 export class MediaService {
     public readonly viewModel$: Observable<MediaPlayerViewModel>;
-    private _homeAssistantApi: HomeAssistantApi;
+    private _ha: HomeAssistantFacade;
 
     private static readonly SPOTCAST_DEFAULTS: SpotcastStartOptions = {
         entity_id: 'media_player.kitchen_speaker',
@@ -30,42 +30,35 @@ export class MediaService {
         force_playback: true
     };
 
-    constructor(homeAssistantApi: HomeAssistantApi) {
-        this._homeAssistantApi = homeAssistantApi;
-        this.viewModel$ = this._homeAssistantApi
+    constructor(homeAssistant: HomeAssistantFacade) {
+        this._ha = homeAssistant;
+        this.viewModel$ = this._ha
             .entity$<MediaPlayerEntity | null>(MEDIA_PLAYER_ENTITY_ID)
             .pipe(map((entity) => this._mapToViewModel(entity)));
     }
 
     public async togglePlay(isPlaying: boolean): Promise<void> {
-        await this._mediaCommand(isPlaying ? 'pause' : 'play');
+        await this._ha.mediaTogglePlay(MEDIA_PLAYER_ENTITY_ID, isPlaying);
     }
 
     public async previousTrack(): Promise<void> {
-        await this._mediaCommand('previous');
+        await this._ha.mediaPrevious(MEDIA_PLAYER_ENTITY_ID);
     }
 
     public async nextTrack(): Promise<void> {
-        await this._mediaCommand('next');
+        await this._ha.mediaNext(MEDIA_PLAYER_ENTITY_ID);
     }
 
     public async setShuffleState(shuffle: boolean): Promise<void> {
-        await this._homeAssistantApi.callService('media_player', 'shuffle_set', {
-            entity_id: MEDIA_PLAYER_ENTITY_ID,
-            shuffle
-        });
+        await this._ha.mediaSetShuffle(MEDIA_PLAYER_ENTITY_ID, shuffle);
     }
 
     public async setVolumePercent(volumePercent: number): Promise<void> {
-        const clampedPercent = Math.max(0, Math.min(100, volumePercent));
-        await this._homeAssistantApi.callService('media_player', 'volume_set', {
-            entity_id: MEDIA_PLAYER_ENTITY_ID,
-            volume_level: clampedPercent / 100
-        });
+        await this._ha.mediaSetVolumePercent(MEDIA_PLAYER_ENTITY_ID, volumePercent);
     }
 
     public async startKitchenMusic(): Promise<void> {
-        await this._homeAssistantApi.callService('spotcast', 'start', MediaService.SPOTCAST_DEFAULTS);
+        await this._ha.spotcastStart(MediaService.SPOTCAST_DEFAULTS);
     }
 
     public openMusicPlayer(): void {
@@ -77,25 +70,6 @@ export class MediaService {
         if (!spotifyWindow) {
             window.open(MUSIC_PLAYER_FALLBACK_URL, '_blank');
         }
-    }
-
-    private async _mediaCommand(command: 'play' | 'pause' | 'next' | 'previous' | 'volume_mute'): Promise<void> {
-        const serviceMap: Record<string, string> = {
-            play: 'media_play',
-            pause: 'media_pause',
-            next: 'media_next_track',
-            previous: 'media_previous_track'
-        };
-        const service = serviceMap[command] ?? command;
-        const payload: Record<string, unknown> = {
-            entity_id: MEDIA_PLAYER_ENTITY_ID
-        };
-
-        if (command === 'volume_mute') {
-            payload.is_volume_muted = true;
-        }
-
-        await this._homeAssistantApi.callService('media_player', service, payload);
     }
 
     private _mapToViewModel(entity: MediaPlayerEntity | null): MediaPlayerViewModel {
@@ -144,7 +118,7 @@ export class MediaService {
         }
 
         try {
-            return new URL(picture, this._homeAssistantApi.getBaseUrl()).toString();
+            return new URL(picture, this._ha.getBaseUrl()).toString();
         } catch (error) {
             console.warn('Unable to resolve media artwork URL', error);
             return picture;
